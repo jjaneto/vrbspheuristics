@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <set>
 #include <map>
+#include <cstring>
 
 #include <thread>
 #include <chrono>
