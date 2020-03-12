@@ -259,7 +259,7 @@ inline void init() {
 
 
 int main() { //DE_RAND_1_BIN
-  fprintf(stdout, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
+  fprintf(stderr, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
   init();
   vector<Individual> offspringPopulation;
 
