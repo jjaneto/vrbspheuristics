@@ -9,7 +9,7 @@
 #include <cstdio>
 #include <unordered_set>
 #include <chrono>
-#include <assert>
+#include <assert.h>
 #include "MTRand.h"
 #include "HeuristicDecoder.h"
 
