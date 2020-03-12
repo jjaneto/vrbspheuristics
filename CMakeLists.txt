@@ -50,16 +50,26 @@ if(APPLE AND USE_OpenMP)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     # set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
   endif(OPENMP_FOUND)
-else()
-  find_package(OpenMP)
-  if (OpenMP_CXX_FOUND)
-    target_link_libraries(BRKGA_FF_Best PUBLIC OpenMP::OpenMP_CXX)
-  endif()
-endif()
 
-add_executable(main
+  add_executable(main
     #Heuristic_main.cpp
     BRKGA.h
     MTRand.h
     Population.h
     HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h HeuristicBRKGA.cpp)
+  
+else()
+  find_package(OpenMP REQUIRED)
+
+  if (OpenMP_CXX_FOUND)
+    add_executable(main
+      #Heuristic_main.cpp
+      BRKGA.h
+      MTRand.h
+      Population.h
+      HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h HeuristicBRKGA.cpp)
+    
+    target_link_libraries(BRKGA_FF_Best PUBLIC OpenMP::OpenMP_CXX)
+  endif()
+endif()
+
