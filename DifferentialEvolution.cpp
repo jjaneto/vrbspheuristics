@@ -20,7 +20,7 @@ const double UPPER_BOUND = 1.0;
 
 const double f__ = 0.5;
 const double cr__ = 0.5;
-const int numberOfDifferenceVectors = 1;
+int numberOfDifferenceVectors = 1;
 
 class Individual {
     double objective;
@@ -68,18 +68,47 @@ public:
 };
 
 enum STOPPING {
-    timeLimit,
-    iteration
+    TIMELIMIT,
+    ITERATION
+};
+
+enum CROSSOVER_TYPE {
+    EXPONENTIAL,
+    BINARY
+};
+
+enum MUTATION_TYPE {
+    RAND,
+    BEST,
+    CURRENT_TO_RAND,
+    RAND_TO_BEST
+};
+
+enum DE_VARIANT {
+    RAND_1_BIN,
+    RAND_1_EXP,
+    RAND_2_BIN,
+    RAND_2_EXP,
+    BEST_1_BIN,
+    BEST_1_EXP,
+    BEST_2_BIN,
+    BEST_2_EXP,
+    RAND_TO_BEST_1_BIN,
+    RAND_TO_BEST_1_EXP,
+    CURRENT_TO_RAND_1_BIN,
+    CURRENT_TO_RAND_1_EXP
 };
 
 int populationSize;
 int numberVariables;
 int evaluations, maxEvaluations;
-int qtdSelected;
+int solutionsToSelect;
 vector<Individual> _population;
 MTRand rng(time(NULL));
 HeuristicDecoder decoder;
-enum STOPPING criteria;
+enum STOPPING stopCriteria;
+enum CROSSOVER_TYPE crossoverType;
+enum MUTATION_TYPE mutationType;
 double maximumTime;
 clock_t startTime;
 
@@ -98,9 +127,9 @@ inline void printPopulation(const vector<Individual> aux) {
 }
 
 bool isStoppingCriteriaReached() {
-  if (criteria == timeLimit) {
+  if (stopCriteria == TIMELIMIT) {
     return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
-  } else if (criteria == iteration) {
+  } else if (stopCriteria == ITERATION) {
     return evaluations > maxEvaluations;
   }
 
@@ -134,9 +163,9 @@ void evaluatePopulation(vector<Individual> &population) {
 }
 
 void initProgress() {
-  if (criteria == timeLimit) {
+  if (stopCriteria == TIMELIMIT) {
     startTime = clock();
-  } else if (criteria == iteration) {
+  } else if (stopCriteria == ITERATION) {
     evaluations = populationSize;
   }
 }
@@ -153,7 +182,7 @@ vector<Individual> selection(const vector<Individual> &solutionList) {
       randomIdx = rng.randInt(solutionList.size() - 1);
 
     toReturn.insert(randomIdx);
-  } while (toReturn.size() < qtdSelected);
+  } while (toReturn.size() < solutionsToSelect);
 
   vector<Individual> inds;
   for (const int el : toReturn)
@@ -165,11 +194,17 @@ vector<Individual> selection(const vector<Individual> &solutionList) {
 double mutate(vector<vector<double> > parent, int index) {
   double value = -1000000007;
 
-
-  if (numberOfDifferenceVectors == 1) {
-    return parent[2][index] + f__ * (parent[0][index] - parent[1][index]);
-  } else if (numberOfDifferenceVectors == 2) {
-    return parent[4][index] + f__ * (parent[0][index] - parent[1][index]) + f__ * (parent[2][index] - parent[3][index]);
+  if (mutationType == RAND) {
+    if (numberOfDifferenceVectors == 1) {
+      return parent[2][index] + f__ * (parent[0][index] - parent[1][index]);
+    } else if (numberOfDifferenceVectors == 2) {
+      return parent[4][index] + f__ * (parent[0][index] - parent[1][index]) +
+             f__ * (parent[2][index] - parent[3][index]);
+    }
+  } else if (mutationType == BEST) {
+    //TODO
+  } else if (mutationType == RAND_TO_BEST) {
+    //TODO
   }
 
   return value;
@@ -180,21 +215,32 @@ crossover(const vector<Individual> &parentSolutions, Individual child) { //TODO:
   vector<vector<double> > parent;
 
   double requiredParents = 1 + numberOfDifferenceVectors * 2;
-  assert(requiredParents == qtdSelected);
+  assert(requiredParents == solutionsToSelect);
 
   for (int i = 0; i < requiredParents; i++)
     parent.emplace_back(parentSolutions[i].getVariables());
 
   int jrand = rng.randInt(numberVariables - 1);
 
-  for (int j = 0; j < numberVariables; j++) {
-    if (rng.rand() || j == jrand) {
-      double value = mutate(parent, j);
-      child.setVariableValue(j, value);
+  if (crossoverType == BINARY) {
+    for (int j = 0; j < numberVariables; j++) {
+      if (rng.rand() || j == jrand) {
+        double value = mutate(parent, j);
+        child.setVariableValue(j, value);
+      }
     }
-  }
+  } else if (crossoverType == EXPONENTIAL) {
+    int j = rng.randInt(numberVariables - 1);
+    int l = 0;
 
-//  printPopulation({Individual(child)});
+    do {
+      double value = mutate(parent, j);
+
+      child.setVariableValue(j, value);
+      j = (j + 1) % numberVariables;
+      l++;
+    } while (rng.rand() < cr__ && (l < numberVariables));
+  }
 
   //REPAIR BOUNDS
   vector<double> childVariables = child.getVariables();
@@ -221,7 +267,6 @@ vector<Individual> reproduction(vector<Individual> matingPopulation) {
   for (int i = 0; i < populationSize; i++) {
     vector<Individual> parents = selection(matingPopulation);
     vector<Individual> children = crossover(parents, matingPopulation[i]);
-//    printPopulation(children);
 
     offspringPopulation.emplace_back(children[0]);
   }
@@ -249,32 +294,101 @@ inline void updateProgress() {
   evaluations += populationSize;
 }
 
-inline void init() {
+inline void init(enum DE_VARIANT variant) {
   populationSize = 100;
   numberVariables = decoder.getQuantConnections();
-  criteria = timeLimit;
+  stopCriteria = TIMELIMIT;
   maximumTime = 100;
-  qtdSelected = 3;
+  solutionsToSelect = 3;
+  switch (variant) {
+    case RAND_1_BIN:
+    case RAND_1_EXP:
+    case BEST_1_BIN:
+    case BEST_1_EXP:
+    case RAND_TO_BEST_1_BIN:
+    case RAND_TO_BEST_1_EXP:
+    case CURRENT_TO_RAND_1_BIN:
+    case CURRENT_TO_RAND_1_EXP:
+      numberOfDifferenceVectors = 1;
+      break;
+    case RAND_2_BIN:
+    case RAND_2_EXP:
+    case BEST_2_BIN:
+    case BEST_2_EXP:
+      numberOfDifferenceVectors = 2;
+      break;
+    default:
+      fprintf(stderr, "ERROR IN VARIANT TYPE\n");
+      exit(-1);
+  }
+
+  switch (variant) {
+    case RAND_1_BIN:
+    case BEST_1_BIN:
+    case RAND_TO_BEST_1_BIN:
+    case CURRENT_TO_RAND_1_BIN:
+    case RAND_2_BIN:
+    case BEST_2_BIN:
+      crossoverType = BINARY;
+      break;
+    case RAND_1_EXP:
+    case BEST_1_EXP:
+    case RAND_TO_BEST_1_EXP:
+    case CURRENT_TO_RAND_1_EXP:
+    case RAND_2_EXP:
+    case BEST_2_EXP:
+      crossoverType = EXPONENTIAL;
+      break;
+    default:
+      fprintf(stderr, "ERROR IN CROSSOVER VARIANT\n");
+      exit(-1);
+  }
+
+  switch (variant) {
+    case RAND_1_BIN:
+    case RAND_1_EXP:
+    case RAND_2_BIN:
+    case RAND_2_EXP:
+      mutationType = RAND;
+      break;
+    case BEST_1_BIN:
+    case BEST_1_EXP:
+    case BEST_2_BIN:
+    case BEST_2_EXP:
+      mutationType = BEST;
+      break;
+    case CURRENT_TO_RAND_1_BIN:
+    case CURRENT_TO_RAND_1_EXP:
+      mutationType = CURRENT_TO_RAND;
+      break;
+    case RAND_TO_BEST_1_BIN:
+    case RAND_TO_BEST_1_EXP:
+      mutationType = RAND_TO_BEST;
+      break;
+    default:
+      fprintf(stderr, "ERROR IN MUTATION VARIANT\n");
+      exit(-1);
+  }
 }
 
 
 int main() { //DE_RAND_1_BIN
   fprintf(stderr, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
-  init();
-  vector<Individual> offspringPopulation;
-
-  _population = createInitialPopulation();
-  evaluatePopulation(_population);
-  initProgress();
-
-  while (!isStoppingCriteriaReached()) {
-    offspringPopulation = reproduction(_population);
-    evaluatePopulation(offspringPopulation);
-    replacement(_population, offspringPopulation);
-    updateProgress();
-  }
-
-  sort(_population.begin(), _population.end());
-  printf("%lf\n", _population[0].getObjective());
+//  init(RAND_1_BIN);
+//  vector<Individual> offspringPopulation;
+//
+//  _population = createInitialPopulation();
+//  evaluatePopulation(_population);
+//  initProgress();
+//
+//  while (!isStoppingCriteriaReached()) {
+//    offspringPopulation = reproduction(_population);
+//    evaluatePopulation(offspringPopulation);
+//    replacement(_population, offspringPopulation);
+//    updateProgress();
+//  }
+//
+//  sort(_population.begin(), _population.end());
+//  printf("%lf\n", _population[0].getObjective());
   return 0;
 }

@@ -53,10 +53,10 @@ if(APPLE AND USE_OpenMP)
 
   add_executable(main
     #Heuristic_main.cpp
-    BRKGA.h
+    #BRKGA.h
     MTRand.h
     Population.h
-    HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h HeuristicBRKGA.cpp)
+    HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h DifferentialEvolution.cpp)
   
 else()
   find_package(OpenMP REQUIRED)
