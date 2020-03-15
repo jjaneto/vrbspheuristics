@@ -422,7 +422,11 @@ int main() { //DE_RAND_1_BIN
   sort(_population.begin(), _population.end());
   printf("%lf\n", _population[0].getObjective());
 
-  FILE *solFile = fopen("solFile.txt", "a");
+  int inst = decoder.getQuantConnections();
+  string fileString = "solFileDE_" + int(inst);
+  fileString += "_variant_";
+  fileString += int(variant);
+  FILE *solFile = fopen(fileString.c_str(), "a");
   const Individual &bestIndividual = _population[0];
   const vector<double> bestVariables = bestIndividual.getVariables();
   for (int i = 0;  i < bestVariables.size(); i++) {
