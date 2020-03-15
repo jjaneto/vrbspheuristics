@@ -307,7 +307,7 @@ inline void updateProgress() {
   evaluations += populationSize;
 }
 
-inline void init(enum DE_VARIANT variant) {
+inline void init(enum DE_VARIANT variant, double timeLimit = 10) {
   populationSize = 100;
   numberVariables = decoder.getQuantConnections();
   stopCriteria = TIMELIMIT;
@@ -334,7 +334,7 @@ inline void init(enum DE_VARIANT variant) {
       exit(-1);
   }
 
-  switch(variant) {
+  switch (variant) {
     case RAND_1_BIN:
     case RAND_1_EXP:
     case BEST_1_BIN:
@@ -405,12 +405,36 @@ inline void init(enum DE_VARIANT variant) {
   }
 }
 
+enum DE_VARIANT defineVariant(string __variant) {
+  if (__variant == "DE_BEST_1_BIN") {
+    return BEST_1_BIN;
+  } else if (__variant == "DE_BEST_1_EXP") {
+    return BEST_1_EXP;
+  } else if (__variant == "DE_BEST_2_BIN") {
+    return BEST_2_BIN;
+  } else if (__variant == "DE_BEST_2_EXP") {
+    return BEST_2_EXP;
+  } else if (__variant == "DE_RAND_1_BIN") {
+    return RAND_1_BIN;
+  } else if (__variant == "DE_RAND_1_EXP") {
+    return RAND_1_EXP;
+  } else if (__variant == "DE_RAND_2_BIN") {
+    return RAND_2_BIN;
+  } else if (__variant == "DE_RAND_2_EXP") {
+    return RAND_2_EXP;
+  } else {
+    fprintf(stderr, "INVALID VARIANT\n");
+    exit(-1);
+  }
+}
 
-int main() { //DE_RAND_1_BIN
-  enum DE_VARIANT variant = BEST_1_BIN;
+int main(int argc, char *argv[]) { //DE_RAND_1_BIN
+  assert(argc == 4);
+
+  enum DE_VARIANT variant = defineVariant(argv[1]);
   fprintf(stderr, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
-  init(variant);
-  fprintf(stderr, "INITIALIZED VARIANT %d\n", variant);
+  init(variant, stoi(argv[2]));
+  fprintf(stderr, "INITIALIZED VARIANT %s\n", argv[1]);
   vector<Individual> offspringPopulation;
 
   _population = createInitialPopulation();
@@ -425,16 +449,22 @@ int main() { //DE_RAND_1_BIN
   }
 
   sort(_population.begin(), _population.end());
-  printf("%lf\n", _population[0].getObjective());
+//  printf("%lf\n", _population[0].getObjective());
 
   int inst = decoder.getQuantConnections();
-  string fileString = "solFileDE_" + int(inst);
-  fileString += "_variant_";
-  fileString += int(variant);
+  string fileString = string(argv[3]);
+
+  string objString = fileString + "objectives.txt";
+  FILE *objFile = fopen(objString.c_str(), "a");
+  fprintf(objFile, "%lf\n", _population[0].getObjective());
+  fclose(objFile);
+
+  fileString += "solFileVariant_";
+  fileString += to_string(variant);
   FILE *solFile = fopen(fileString.c_str(), "a");
   const Individual &bestIndividual = _population[0];
   const vector<double> bestVariables = bestIndividual.getVariables();
-  for (int i = 0;  i < bestVariables.size(); i++) {
+  for (int i = 0; i < bestVariables.size(); i++) {
     fprintf(solFile, "%.4lf ", bestVariables[i]);
   }
   fprintf(solFile, " %.2lf\n", bestIndividual.getObjective());
