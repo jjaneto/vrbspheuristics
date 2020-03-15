@@ -109,6 +109,7 @@ HeuristicDecoder decoder;
 enum STOPPING stopCriteria;
 enum CROSSOVER_TYPE crossoverType;
 enum MUTATION_TYPE mutationType;
+Individual bestSolution;
 double maximumTime;
 clock_t startTime;
 
@@ -202,7 +203,13 @@ double mutate(vector<vector<double> > parent, int index) {
              f__ * (parent[2][index] - parent[3][index]);
     }
   } else if (mutationType == BEST) {
-    //TODO
+    if (numberOfDifferenceVectors == 1) {
+      return bestSolution.getVariableValue(index) + f__ * (parent[0][index] - parent[1][index]);
+    } else if (numberOfDifferenceVectors == 2) {
+      return bestSolution.getVariableValue(index)
+             + f__ * (parent[0][index] - parent[1][index])
+             + f__ * (parent[2][index] - parent[3][index]);
+    }
   } else if (mutationType == RAND_TO_BEST) {
     //TODO
   }
@@ -287,6 +294,7 @@ vector<Individual> replacement(vector<Individual> &population, vector<Individual
   }
 
   sort(pop.begin(), pop.end());
+  bestSolution = pop[0];
   return pop;
 }
 
@@ -298,8 +306,7 @@ inline void init(enum DE_VARIANT variant) {
   populationSize = 100;
   numberVariables = decoder.getQuantConnections();
   stopCriteria = TIMELIMIT;
-  maximumTime = 100;
-  solutionsToSelect = 3;
+  maximumTime = 10;
   switch (variant) {
     case RAND_1_BIN:
     case RAND_1_EXP:
@@ -319,6 +326,28 @@ inline void init(enum DE_VARIANT variant) {
       break;
     default:
       fprintf(stderr, "ERROR IN VARIANT TYPE\n");
+      exit(-1);
+  }
+
+  switch(variant) {
+    case RAND_1_BIN:
+    case RAND_1_EXP:
+    case BEST_1_BIN:
+    case BEST_1_EXP:
+    case RAND_TO_BEST_1_BIN:
+    case RAND_TO_BEST_1_EXP:
+    case CURRENT_TO_RAND_1_BIN:
+    case CURRENT_TO_RAND_1_EXP:
+      solutionsToSelect = 3;
+      break;
+    case RAND_2_BIN:
+    case RAND_2_EXP:
+    case BEST_2_BIN:
+    case BEST_2_EXP:
+      solutionsToSelect = 5;
+      break;
+    default:
+      fprintf(stderr, "ERROR IN solutionsToSelect\n");
       exit(-1);
   }
 
@@ -373,22 +402,33 @@ inline void init(enum DE_VARIANT variant) {
 
 
 int main() { //DE_RAND_1_BIN
+  enum DE_VARIANT variant = RAND_2_BIN;
   fprintf(stderr, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
-//  init(RAND_1_BIN);
-//  vector<Individual> offspringPopulation;
-//
-//  _population = createInitialPopulation();
-//  evaluatePopulation(_population);
-//  initProgress();
-//
-//  while (!isStoppingCriteriaReached()) {
-//    offspringPopulation = reproduction(_population);
-//    evaluatePopulation(offspringPopulation);
-//    replacement(_population, offspringPopulation);
-//    updateProgress();
-//  }
-//
-//  sort(_population.begin(), _population.end());
-//  printf("%lf\n", _population[0].getObjective());
+  init(variant);
+  fprintf(stderr, "INITIALIZED VARIANT %d\n", variant);
+  vector<Individual> offspringPopulation;
+
+  _population = createInitialPopulation();
+  evaluatePopulation(_population);
+  initProgress();
+
+  while (!isStoppingCriteriaReached()) {
+    offspringPopulation = reproduction(_population);
+    evaluatePopulation(offspringPopulation);
+    replacement(_population, offspringPopulation);
+    updateProgress();
+  }
+
+  sort(_population.begin(), _population.end());
+  printf("%lf\n", _population[0].getObjective());
+
+  FILE *solFile = fopen("solFile.txt", "a");
+  const Individual &bestIndividual = _population[0];
+  const vector<double> bestVariables = bestIndividual.getVariables();
+  for (int i = 0;  i < bestVariables.size(); i++) {
+    fprintf(solFile, "%.4lf ", bestVariables[i]);
+  }
+  fprintf(solFile, " %.2lf\n", bestIndividual.getObjective());
+  fclose(solFile);
   return 0;
 }
