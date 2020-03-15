@@ -153,6 +153,7 @@ vector<Individual> createInitialPopulation() {
 };
 
 void evaluatePopulation(vector<Individual> &population) {
+  double MINOBJ = 1000000007;
   for (int i = 0; i < populationSize; i++) {
     vector<double> variables(population[i].getVariables());
 
@@ -160,6 +161,10 @@ void evaluatePopulation(vector<Individual> &population) {
 //    printf("%.4lf\n", obj);
 
     population[i].setObjective(obj);
+    if (obj < MINOBJ) {
+      MINOBJ = obj;
+      bestSolution = population[i];
+    }
   }
 }
 
