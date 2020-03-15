@@ -76,3 +76,7 @@ fabric.properties
 .project
 .settings/**
 TESTE_*
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+main

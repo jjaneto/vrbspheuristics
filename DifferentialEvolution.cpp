@@ -402,7 +402,7 @@ inline void init(enum DE_VARIANT variant) {
 
 
 int main() { //DE_RAND_1_BIN
-  enum DE_VARIANT variant = RAND_2_BIN;
+  enum DE_VARIANT variant = BEST_1_BIN;
   fprintf(stderr, "DIFFERENTIAL EVOLUTION WITH HEURISTIC\n");
   init(variant);
   fprintf(stderr, "INITIALIZED VARIANT %d\n", variant);

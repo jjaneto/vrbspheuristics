@@ -67,9 +67,9 @@ else()
       BRKGA.h
       MTRand.h
       Population.h
-      HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h HeuristicBRKGA.cpp)
+      HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h DifferentialEvolution.cpp)
     
-    target_link_libraries(BRKGA_FF_Best PUBLIC OpenMP::OpenMP_CXX)
+    target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
   endif()
 endif()
 
