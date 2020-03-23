@@ -56,7 +56,7 @@ if(APPLE AND USE_OpenMP)
     #BRKGA.h
     MTRand.h
     Population.h
-    HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h DifferentialEvolution.cpp)
+    HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h VNS.cpp)
   
 else()
   find_package(OpenMP REQUIRED)
@@ -67,7 +67,7 @@ else()
       BRKGA.h
       MTRand.h
       Population.h
-      HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h DifferentialEvolution.cpp)
+      HeuristicDecoder.h HeuristicDecoder.cpp SolutionVerifier.h VNS.cpp)
     
     target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
   endif()

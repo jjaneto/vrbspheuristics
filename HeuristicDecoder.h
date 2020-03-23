@@ -23,6 +23,14 @@
 #include <thread>
 #include <chrono>
 
+static int channels20MHz[25] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                                24};
+static int channels40MHz[12] = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36};
+static int channels80MHz[6] = {37, 38, 39, 40, 41, 42};
+static int channels160MHz[2] = {43, 44};
+
+static std::unordered_map<int, std::pair<int, int>> mapChtoCh;
+
 using namespace std;
 
 struct Link {
@@ -40,6 +48,10 @@ struct Link {
     Link(int id);
 
     Link(const Link &x);
+
+    int getId() const;
+
+    int getChannel() const;
 
     void operator=(const Link &x);
 
@@ -70,6 +82,18 @@ public:
     void clearChannel(int channel);
 
     void insert(const Link &l);
+
+    void removeLink(Link link);
+
+    int getNumberOfScheduledLinks() const;
+
+    Link removeLinkByIndex(int index);
+
+    void exchangeLinks(int idOldLink, Link newLink);
+
+    vector<int> getScheduledChannels() const;
+
+    double getChannelThroughput(int channel) const;
 
     double getObjective() const;
 
@@ -104,6 +128,14 @@ public:
     int getQuantConnections();
 
     void setInitialTime();
+
+    Solution generateSolution();
 };
+
+int whichBw(int ch);
+
+int bwIdx(int bw);
+
+void split(Solution &dest, Solution &src, int ch);
 
 #endif //BRKGA_FF_BEST_HEURISTICDECODER_H

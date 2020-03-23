@@ -10,14 +10,12 @@ const double EPS = 1e-9;
 
 int nConnections;
 int L;
-deque<int> links;
 double dataRates[10][4];
 double distanceMatrix[2048][2048], interferenceMatrix[2048][2048];
 double senders[2048][2], receivers[2048][2];
 vector<vector<double>> SINR;
 double powerSender, alfa, noise, ttm;
 map<int, vector<int>> chToLinks;
-unordered_map<int, pair<int, int>> mapChtoCh;
 
 int overlap[45][45] = {{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
                        {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
@@ -248,6 +246,14 @@ void Link::operator=(const Link &x) {
   _idS = x._idS;
   distanceSenderReceiver = x.distanceSenderReceiver;
   SINR = x.SINR;
+}
+
+int Link::getId() const {
+  return this->id;
+}
+
+int Link::getChannel() const {
+  return this->ch;
 }
 
 bool operator==(const Link &o1, const Link &o2) {
@@ -558,6 +564,51 @@ inline void decideBest(Solution &f, const Solution &u, const Solution &v) {
   }
 }
 
+Solution HeuristicDecoder::generateSolution() {
+  deque<int> links;
+  for (int i = 0; i < nConnections; i++)
+    links.emplace_back(i);
+
+  Solution S;
+  int cont = 0;
+  while (!links.empty()) {
+    int idx = rand() % (links.size());
+    int link = links[idx];
+    //fprintf(stderr, "link %d\n", link);
+    //-------------
+    Solution Scopy(S);
+    for (auto &el : chToLinks) {
+      Solution S1(S), S2;
+      int ch = el.first;
+      Link aux(link);
+      aux.setChannel(ch);
+      S1.insert(aux);
+      //
+      if (whichBw(ch) > 20) {
+        split(S2, S1, ch);
+      }
+
+      //
+      decideBest(Scopy, S1, S2);
+      //
+    }
+    if (Scopy > S) {
+      S = Scopy;
+    }
+
+    //-------------
+    swap(links[idx], links.back());
+    links.pop_back();
+  }
+
+  Solution seila;
+  return seila; //TODO
+}
+
+void Solution::removeLink(Link link) { //TODO
+
+}
+
 double HeuristicDecoder::decode(std::vector<double> &chromosome) const {
   vector<pair<double, int> > auxVector;
 
@@ -614,4 +665,39 @@ int HeuristicDecoder::getQuantConnections() {
 
 void HeuristicDecoder::setInitialTime() {
   TempoFO_StarInic = clock();
+}
+
+int Solution::getNumberOfScheduledLinks() const {
+  return scheduled_links.size();
+}
+
+Link Solution::removeLinkByIndex(int index) {
+  swap(scheduled_links[index], scheduled_links.back());
+  Link ret = Link(scheduled_links.back());
+
+  scheduled_links.pop_back();
+  return ret;
+}
+
+void Solution::exchangeLinks(int idOldLink, Link newLink) {
+  scheduled_links[idOldLink] = newLink; //TODO: is this what I meant to do?
+}
+
+vector<int> Solution::getScheduledChannels() const {
+  set<int> setRet;
+  for (int i = 0; i < scheduled_links.size(); i++) {
+    setRet.insert(scheduled_links[i].getChannel());
+  }
+
+  return vector<int>(setRet.begin(), setRet.end());
+}
+
+double Solution::getChannelThroughput(int channel) const {
+  double ret = 0.0;
+  for (const Link &x : scheduled_links) {
+    if (x.getChannel() == channel) {
+      ret += channel;
+    }
+  }
+  return ret;
 }
