@@ -17,7 +17,6 @@ int betaAddDrop(const Solution current, Link link) {
   vector<int> channels = current.getScheduledChannels();
   int bestChannel = -1; //TODO: remember to update bestChannel value.
 
-  Solution newly;
   for (int ch : channels) {
     Solution aux(current);
     Link copyLink(link);
@@ -25,9 +24,8 @@ int betaAddDrop(const Solution current, Link link) {
 
     aux.insert(copyLink);
 
-    if (aux > newly) {
+    if (aux > current) {
       bestChannel = ch;
-      newly = aux;
     }
   }
 
