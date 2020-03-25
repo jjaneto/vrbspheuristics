@@ -1,11 +1,3 @@
-#include <cstdio>
-#include <vector>
-#include <map>
-#include <set>
-#include <deque>
-#include <algorithm>
-#include <cstring>
-#include <cmath>
 #include "HeuristicDecoder.h"
 #include "MTRand.h"
 
@@ -21,8 +13,9 @@ bool isStoppingCriteriaReached() {
   return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
 }
 
-Solution betaAddDrop(const Solution current, Link link) {
+int betaAddDrop(const Solution current, Link link) {
   vector<int> channels = current.getScheduledChannels();
+  int bestChannel = -1; //TODO: remember to update bestChannel value.
 
   Solution newly;
   for (int ch : channels) {
@@ -33,18 +26,23 @@ Solution betaAddDrop(const Solution current, Link link) {
     aux.insert(copyLink);
 
     if (aux > newly) {
+      bestChannel = ch;
       newly = aux;
     }
   }
 
-  //TODO: and...? What goes next?
-  return newly;
+  return bestChannel;
 }
 
-void betaAddDrop(const Solution current, int beta = 1) {
+void betaAddDrop(Solution &current, int beta = 1) {
   for (int i = 0; i < beta; i++) {
     int rndIndex = rng.randInt(nonScheduledLinks.size() - 1);
-    betaAddDrop(current, nonScheduledLinks[rndIndex]); //TODO: devo retornar algo?
+    int bestChannel = betaAddDrop(current, nonScheduledLinks[rndIndex]);
+    assert(bestChannel != -1);
+
+    Link toInsert(nonScheduledLinks[rndIndex]);
+    toInsert.setChannel(bestChannel);
+    current.insert(toInsert);
 
     swap(nonScheduledLinks[rndIndex], nonScheduledLinks.back());
     nonScheduledLinks.pop_back();
@@ -127,7 +125,6 @@ Solution localSearch(Solution current) {
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
 
-        //S_1.removeLink(active)
       }
 
       if (S_2 > S_star) {
@@ -143,10 +140,13 @@ Solution localSearch(Solution current) {
 }
 
 Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
-  betaAddDrop(S, NUMBER_OF_LINKS % k);
-  betaReinsert(S, NUMBER_OF_LINKS % k);
-  Solution ret;
-  return ret; //TODO: O que eh para retornar?
+  double threeshold = rng.rand();
+  if (threeshold >= .5) {
+    betaAddDrop(S, NUMBER_OF_LINKS * ((k * 1.0) / 100.0));
+  } else {
+    betaReinsert(S, NUMBER_OF_LINKS * ((k * 1.0) / 100.0));
+  }
+  return S;
 }
 
 void init() {
