@@ -49,20 +49,21 @@ void betaAddDrop(Solution &current, int beta = 1) {
   }
 }
 
-void betaReinsert(const Solution current, int beta = 1) {
-  assert(beta >= current.getNumberOfScheduledLinks());
-
-  Solution currentCopy(current), currentDummy(current);
+void betaReinsert(Solution &current, int beta = 1) {
+  unordered_set<int> usedLinks;
   for (int i = 0; i < beta; i++) {
-    int rndIndex = rng.randInt(currentDummy.getNumberOfScheduledLinks() - 1); //TODO: verificar se o rand eh inclusive
+    int rndIndex = rng.randInt(current.getNumberOfScheduledLinks() - 1);
 
-    Link rmvLink = currentDummy.removeLinkByIndex(rndIndex);
-//    betaAddDrop(currentDummy, rmvLink); //FIXME: I'm passing rmvLink by value; therefore, nothing changes after here.
-//
-//    Link newLink(rmvLink); //TODO: tem que setar o novo canal.
-//    currentCopy.exchangeLinks(rmvLink.getId(), newLink);
+    while (usedLinks.count(rndIndex))
+      rndIndex = rng.randInt(current.getNumberOfScheduledLinks() - 1);
 
-    currentCopy = betaAddDrop(currentDummy, rmvLink);
+    Link rmvLink = current.removeLinkByIndex(rndIndex);
+    int bestChannel = betaAddDrop(current, rmvLink);
+    assert(bestChannel != -1);
+
+    Link toInsert(nonScheduledLinks[rndIndex]);
+    toInsert.setChannel(bestChannel);
+    current.insert(toInsert);
   }
 }
 
