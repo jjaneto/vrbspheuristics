@@ -1,10 +1,8 @@
 #include "HeuristicDecoder.h"
-#include "MTRand.h"
 
 const int K_MAX = 50;
 
-MTRand rng;
-HeuristicDecoder heu;
+HeuristicDecoder *heu;
 vector<Link> nonScheduledLinks;
 double maximumTime;
 clock_t startTime;
@@ -93,12 +91,12 @@ bool allChannels20MHz(const Solution &check) {
 }
 
 Solution convert(const Solution &aux) { //TODO: colocar todo mundo em canal de 20MHz
-  Solution ret;
+  Solution ret(aux);
 
-  while (allChannels20MHz(aux)) {
-    for (Link &x : aux.getScheduledLinks()) {
+  while (!allChannels20MHz(ret)) {
+    for (Link &x : ret.getScheduledLinks()) {
       if (whichBw(x.getChannel()) > 20) {
-        split(ret, ret, x.getChannel());
+        split(ret, ret, x.getChannel(), true);
         break;
       }
     }
@@ -123,7 +121,6 @@ Solution localSearch(Solution current) {
         solve(S_1, channel20);
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
-
       }
 
       if (S_2 > S_star) {
@@ -149,20 +146,24 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
 }
 
 void init() {
-  for (int i = 0; i < heu.getQuantConnections(); i++) {
+#ifdef DEBUG_CLION
+  puts("WITH DEBUG");
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
+#endif
+
+  heu = new HeuristicDecoder();
+  for (int i = 0; i < heu->getQuantConnections(); i++) {
     nonScheduledLinks.emplace_back(Link(i));
   }
-
   maximumTime = 10;
-
 }
 
 int main(int argc, char *argv[]) {
   init();
-  const int NUMBER_OF_LINKS = heu.getQuantConnections();
+  const int NUMBER_OF_LINKS = heu->getQuantConnections();
   startTime = clock();
   //--------------------------------------------------------
-  Solution S_dummy = heu.generateSolution();
+  Solution S_dummy = heu->generateSolution();
   Solution S = localSearch(S_dummy);
   while (!isStoppingCriteriaReached()) {
     int k = 1;
@@ -178,5 +179,7 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  delete heu;
   return 0;
 }

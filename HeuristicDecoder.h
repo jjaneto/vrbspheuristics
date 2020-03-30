@@ -24,13 +24,19 @@
 #include <thread>
 #include <chrono>
 
+#include "MTRand.h"
+
 static int channels20MHz[25] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
                                 24};
 static int channels40MHz[12] = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36};
 static int channels80MHz[6] = {37, 38, 39, 40, 41, 42};
 static int channels160MHz[2] = {43, 44};
 
+static std::string PATH_TO[46][46];
+
 static std::unordered_map<int, std::pair<int, int>> mapChtoCh;
+
+static MTRand rng;
 
 using namespace std;
 
@@ -84,7 +90,7 @@ public:
 
     void insert(const Link &l);
 
-    void removeLink(Link link);
+    bool removeLink(Link link);
 
     int getNumberOfScheduledLinks() const;
 
@@ -95,6 +101,8 @@ public:
     vector<int> getScheduledChannels() const;
 
     double getChannelThroughput(int channel) const;
+
+    void setChannelOfLink(int id, int channel);
 
     double getObjective() const;
 
@@ -137,6 +145,8 @@ int whichBw(int ch);
 
 int bwIdx(int bw);
 
-void split(Solution &dest, Solution &src, int ch);
+void split(Solution &dest, Solution &src, int ch, bool ok = false);
+
+void dfs(int u, int pai = -1, string path = "");
 
 #endif //BRKGA_FF_BEST_HEURISTICDECODER_H

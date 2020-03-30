@@ -442,16 +442,17 @@ void Solution::insert(const Link &l) {
 }
 
 void Solution::clearChannel(int ch) {
-  set<int> MARK;
-  for (Link &l : scheduled_links) {
-    if (l.ch == ch) {
-      MARK.insert(l.id);
-    }
-  }
+//  set<int> MARK;
+//  for (Link &l : scheduled_links) {
+//    if (l.ch == ch) {
+//      MARK.insert(l.id);
+//    }
+//  }
 
   auto it = scheduled_links.begin();
   while (it != scheduled_links.end()) {
-    if (MARK.count(it->id)) {
+//    if (MARK.count(it->id)) {
+    if (it->ch == ch) {
       it = scheduled_links.erase(it);
     } else {
       it++;
@@ -486,16 +487,36 @@ HeuristicDecoder::HeuristicDecoder() {
   chToLinks[44] = vector<int>();
   chToLinks[45] = vector<int>();
   mapSplitChannels();
+  dfs(44);
+  dfs(45);
+  dfs(42);
+  dfs(43);
+  //dfs(25); //TODO: need this?
 }
 
-void split(Solution &dest, Solution &src, int ch) {
+void Solution::setChannelOfLink(int id, int channel) {
+  for (Link &x : scheduled_links) {
+    if (x.id == id) {
+      x.ch = channel;
+    }
+  }
+}
+
+void split(Solution &dest, Solution &src, int ch, bool ok) {
   int ch1 = mapChtoCh[ch].first, ch2 = mapChtoCh[ch].second;
   src.computeObjective();
   deque<Link> links = src.getLinksInChannel(ch);
 
   if (links.size() < 2) {
+    if (ok && !links.empty()) {
+      src.setChannelOfLink(links[0].id, ch1);
+      dest = src;
+    }
     return;
   }
+
+//  if (ok)
+//    printf(" -> Particionando o canal %d, com %d filhos\n", ch, int(links.size()));
 
   Link largest1;
   for (const Link &l : links) {
@@ -511,6 +532,9 @@ void split(Solution &dest, Solution &src, int ch) {
     }
   }
 
+//  if (ok)
+//    printf("largerst 1 id %d largest 2 id %d\n", largest1.getId(), largest2.getId());
+
   auto it = links.begin();
   while (it != links.end()) {
     if ((*it == largest1) || (*it == largest2)) {
@@ -520,37 +544,50 @@ void split(Solution &dest, Solution &src, int ch) {
     }
   }
 
-  Solution current(src);
-  current.clearChannel(ch);
+//  if (ok)
+//    printf("depois de apagar links size %d\n", int(links.size()));
 
-//  fprintf(stderr, "apos apagar tem %lu links (array links %lu)\n", current.getScheduledLinks().size(), links.size());
+  Solution newly(src);
+
+//  if (ok)
+//    printf("newly links before cleaning %d\n", newly.getNumberOfScheduledLinks());
+
+  newly.clearChannel(ch);
+
+//  if (ok)
+//    printf("newly links after cleaning %d\n", newly.getNumberOfScheduledLinks());
+
   largest1.setChannel(ch1);
   largest2.setChannel(ch2);
-  current.insert(largest1);
-  current.insert(largest2);
+  newly.insert(largest1);
+  newly.insert(largest2);
 
-  deque<int> randomPos;
-  for (int i = 0; i < int(links.size()); i++) {
-    randomPos.emplace_back(i);
+  while (!links.empty()) {
+    int rndIndex = rng.randInt(links.size() - 1);
+    Link link = links[rndIndex];
+
+    Link dummy1(link), dummy2(link);
+    dummy1.setChannel(ch1), dummy2.setChannel(ch2);
+
+    Solution copy1(newly), copy2(newly);
+
+    copy1.insert(dummy1);
+    copy2.insert(dummy2);
+
+    newly = (copy1 > copy2) ? copy1 : copy2;
+
+    swap(links[rndIndex], links.back());
+    links.pop_back();
   }
 
-  while (!randomPos.empty()) {
-    int idx = rand() % randomPos.size();
+//  if (ok) {
+//    for (const Link &x : newly.getScheduledLinks()) {
+//      printf("      -> link %d channel is %d\n", x.getId(), x.getChannel());
+//    }
+//    puts("AHSADHASA");
+//  }
 
-    Solution copy1(current), copy2(current);
-    Link lcp1(links[idx]), lcp2(links[idx]);
-    lcp1.setChannel(ch1), lcp2.setChannel(ch2);
-
-    copy1.insert(lcp1);
-    copy2.insert(lcp2);
-
-    current = (copy1 > copy2) ? copy1 : copy2;
-
-    swap(randomPos[idx], randomPos.back());
-    randomPos.pop_back();
-  }
-
-  dest = current;
+  dest = newly;
 }
 
 inline void decideBest(Solution &f, const Solution &u, const Solution &v) {
@@ -601,12 +638,21 @@ Solution HeuristicDecoder::generateSolution() {
     links.pop_back();
   }
 
-  Solution seila;
-  return seila; //TODO
+  return S;
 }
 
-void Solution::removeLink(Link link) { //TODO
+bool Solution::removeLink(Link link) {
+  auto it = scheduled_links.begin();
+  while (it != scheduled_links.end()) {
+    if (*it == link) {
+      scheduled_links.erase(it);
+      return true;
+    } else {
+      it++;
+    }
+  }
 
+  return false;
 }
 
 double HeuristicDecoder::decode(std::vector<double> &chromosome) const {
@@ -700,4 +746,17 @@ double Solution::getChannelThroughput(int channel) const {
     }
   }
   return ret;
+}
+
+
+void dfs(int u, int pai, string path) {
+//  printf("seeing %d with father %d and path %s\n", u, pai, path.c_str());
+  if (pai != -1) {
+    PATH_TO[pai][u] = path;
+  }
+
+  if (mapChtoCh.find(u) != mapChtoCh.end()) {
+    dfs(mapChtoCh[u].first, u, path + "L");
+    dfs(mapChtoCh[u].second, u, path + "R");
+  }
 }
