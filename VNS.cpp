@@ -13,7 +13,9 @@ bool isStoppingCriteriaReached() {
 
 int betaAddDrop(const Solution current, Link link) {
   vector<int> channels = current.getScheduledChannels();
-  int bestChannel = -1; //TODO: remember to update bestChannel value.
+  int bestChannel = -1;
+
+  Solution dummy;
 
   for (int ch : channels) {
     Solution aux(current);
@@ -22,7 +24,8 @@ int betaAddDrop(const Solution current, Link link) {
 
     aux.insert(copyLink);
 
-    if (aux > current) {
+    if (aux > dummy) { //FIXME: Should I return the best solution from this loop or only if its better than current?
+      dummy = aux;
       bestChannel = ch;
     }
   }
@@ -32,7 +35,9 @@ int betaAddDrop(const Solution current, Link link) {
 
 void betaAddDrop(Solution &current, int beta = 1) {
   for (int i = 0; i < beta; i++) {
+    assert(nonScheduledLinks.empty());
     int rndIndex = rng.randInt(nonScheduledLinks.size() - 1);
+//    printf("betaAddDrop no link %d\n", nonScheduledLinks[rndIndex].id);
     int bestChannel = betaAddDrop(current, nonScheduledLinks[rndIndex]);
     assert(bestChannel != -1);
 
@@ -57,28 +62,75 @@ void betaReinsert(Solution &current, int beta = 1) {
     int bestChannel = betaAddDrop(current, rmvLink);
     assert(bestChannel != -1);
 
-    Link toInsert(nonScheduledLinks[rndIndex]);
-    toInsert.setChannel(bestChannel);
-    current.insert(toInsert);
+    rmvLink.setChannel(bestChannel);
+    current.insert(rmvLink);
   }
 }
 
-Solution solve(Solution S, int channel) {
-  //TODO: best <- canal.throughput (?????)
-  double best = S.getChannelThroughput(channel);
+Solution solve(Solution S, int channel) { //TODO: need to implement origChannel variable.
+  if (bwIdx(channel) > 0) {
+    Solution S1, S2;
 
-  if (whichBw(channel) > 20) {
-    //TODO
-//    double bestC1 = solve(S, mapChtoCh[channel].first); //FIXME: it's not double, but Solution
-//    double bestC2 = solve(S, mapChtoCh[channel].second);
+    for (const Link &link_ : S.getScheduledLinks()) {
+      char moveTo = PATH_TO[link_.ch][link_.origChannel][bwIdx(link_.ch)];
+      assert(moveTo == 'L' || moveTo == 'R');
 
-//    if (bestC1 + bestC2 > best) {
-//      best = bestC1 + bestC2;
-//      TODO: canal.inSolution = false
-//    }
+      Link copy(link_);
+      if (moveTo == 'L') {
+        copy.setChannel(mapChtoCh[copy.ch].first);
+        S1.insert(copy);
+      } else if (moveTo == 'R') {
+        copy.setChannel(mapChtoCh[copy.ch].second);
+        S2.insert(copy);
+      }
+    }
+
+    Solution solToLeft = solve(S1, mapChtoCh[channel].first);
+    Solution solToRight = solve(S2, mapChtoCh[channel].second);
+
+    if (solToLeft.getObjective() + solToRight.getObjective()) {
+      deque<Link> newLinks(solToLeft.getScheduledLinks());
+      for (const Link &link_ : solToRight.getScheduledLinks()) {
+        newLinks.emplace_back(link_);
+      }
+
+      S.setScheduledLinks(newLinks);
+      S.computeObjective(false);
+    }
   }
 
-  return Solution();
+  return S;
+}
+
+Solution buildRootSolution(const Solution &curr, int root) {
+    Solution ret;
+
+    for (const Link &x : curr.getScheduledLinks()) {
+      if (overlap[x.getChannel()][root]) {
+        Link newLink(x);
+        newLink.setChannel(root);
+        ret.insert(newLink);
+      }
+    }
+
+    return ret;
+}
+
+Solution solve(Solution S) {
+  Solution arr[5];
+
+  arr[0] = solve(buildRootSolution(S, 45), 45);
+  arr[1] = solve(buildRootSolution(S, 44), 44);
+  arr[2] = solve(buildRootSolution(S, 43), 43);
+  arr[3] = solve(buildRootSolution(S, 42), 42);
+  arr[4] = solve(buildRootSolution(S, 25), 25);
+
+  Solution final_;
+  for (const Solution &s_ : arr) {
+    final_.addLinks(s_.getScheduledLinks());
+  }
+
+  return final_;
 }
 
 bool allChannels20MHz(const Solution &check) {
@@ -90,7 +142,7 @@ bool allChannels20MHz(const Solution &check) {
   return true;
 }
 
-Solution convert(const Solution &aux) { //TODO: colocar todo mundo em canal de 20MHz
+Solution convert(const Solution &aux) {
   Solution ret(aux);
 
   while (!allChannels20MHz(ret)) {
@@ -110,15 +162,22 @@ Solution localSearch(Solution current) {
   Solution S(S_star), S_2(S_star);
 
   while (improve) {
-    for (Link active : current.getScheduledLinks()) {
-      Solution SCopy = S;
-      Solution S_1 = SCopy;
-      S_1.removeLink(active);
+    for (Link active : S.getScheduledLinks()) {
+      //TODO: Do I need SCopy here? Kinda lost
+      //TODO: see split() function. Variable origChannel with wrong values.
+
       for (int channel20 : channels20MHz) {
+        if (channel20 == active.getChannel())
+          continue;
+
+        Solution S_1(S);
+//      active.printLink();
+        assert(S_1.removeLink(active)); //Testando se a funcao vai funcionar corretamente
+
         Link aux(active);
         aux.setChannel(channel20);
         S_1.insert(aux);
-        solve(S_1, channel20);
+        solve(S_1);
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
       }
@@ -132,15 +191,15 @@ Solution localSearch(Solution current) {
     }
   }
 
-  return S; //FIXME: o que eh para retornar?
+  return S;
 }
 
 Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
   double threeshold = rng.rand();
   if (threeshold >= .5) {
-    betaAddDrop(S, NUMBER_OF_LINKS * ((k * 1.0) / 100.0));
+    betaAddDrop(S, lround(NUMBER_OF_LINKS * k * 0.01));
   } else {
-    betaReinsert(S, NUMBER_OF_LINKS * ((k * 1.0) / 100.0));
+    betaReinsert(S, lround(NUMBER_OF_LINKS * k * 0.01));
   }
   return S;
 }
@@ -175,7 +234,7 @@ int main(int argc, char *argv[]) {
         S = S_2;
         k = 1;
       } else {
-        k++; //TODO: isso mesmo?
+        k++;
       }
     }
   }
