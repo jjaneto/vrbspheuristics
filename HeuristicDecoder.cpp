@@ -69,27 +69,50 @@ void convertTableToMW(const vector<vector<double> > &_SINR, vector<vector<double
 }
 
 inline void mapSplitChannels() {
-  mapChtoCh[44] = {38, 39};
-  mapChtoCh[38] = {26, 27};
-  mapChtoCh[39] = {28, 29};
-  mapChtoCh[26] = {1, 2};
-  mapChtoCh[27] = {3, 4};
-  mapChtoCh[28] = {5, 6};
-  mapChtoCh[29] = {7, 8};
-  mapChtoCh[45] = {40, 41};
-  mapChtoCh[40] = {30, 31};
-  mapChtoCh[41] = {32, 33};
-  mapChtoCh[30] = {9, 10};
-  mapChtoCh[31] = {11, 12};
-  mapChtoCh[32] = {13, 14};
-  mapChtoCh[33] = {15, 16};
-  mapChtoCh[42] = {34, 35};
-  mapChtoCh[34] = {17, 18};
-  mapChtoCh[35] = {19, 20};
-  mapChtoCh[43] = {36, 37};
-  mapChtoCh[36] = {21, 22};
-  mapChtoCh[37] = {23, 24};
+  mapChtoCh[43] = {37, 38};
+  mapChtoCh[37] = {25, 26};
+  mapChtoCh[38] = {27, 28};
+  mapChtoCh[25] = {0, 1};
+  mapChtoCh[26] = {2, 3};
+  mapChtoCh[27] = {4, 5};
+  mapChtoCh[28] = {6, 7};
+  mapChtoCh[44] = {39, 40};
+  mapChtoCh[39] = {29, 30};
+  mapChtoCh[40] = {31, 32};
+  mapChtoCh[29] = {8, 9};
+  mapChtoCh[30] = {10, 11};
+  mapChtoCh[31] = {12, 13};
+  mapChtoCh[32] = {14, 15};
+  mapChtoCh[41] = {33, 34};
+  mapChtoCh[33] = {16, 17};
+  mapChtoCh[34] = {18, 19};
+  mapChtoCh[42] = {35, 36};
+  mapChtoCh[35] = {20, 21};
+  mapChtoCh[36] = {22, 23};
 }
+
+//inline void mapSplitChannels() {
+//  mapChtoCh[44] = {38, 39};
+//  mapChtoCh[38] = {26, 27};
+//  mapChtoCh[39] = {28, 29};
+//  mapChtoCh[26] = {1, 2};
+//  mapChtoCh[27] = {3, 4};
+//  mapChtoCh[28] = {5, 6};
+//  mapChtoCh[29] = {7, 8};
+//  mapChtoCh[45] = {40, 41};
+//  mapChtoCh[40] = {30, 31};
+//  mapChtoCh[41] = {32, 33};
+//  mapChtoCh[30] = {9, 10};
+//  mapChtoCh[31] = {11, 12};
+//  mapChtoCh[32] = {13, 14};
+//  mapChtoCh[33] = {15, 16};
+//  mapChtoCh[42] = {34, 35};
+//  mapChtoCh[34] = {17, 18};
+//  mapChtoCh[35] = {19, 20};
+//  mapChtoCh[43] = {36, 37};
+//  mapChtoCh[36] = {21, 22};
+//  mapChtoCh[37] = {23, 24};
+//}
 
 void readFile() {
   SINR.assign(10, vector<double>(4, 0));
@@ -137,11 +160,11 @@ void readFile() {
 }
 
 int whichBw(int ch) {
-  if (ch >= 26 && ch <= 37)
+  if (ch >= 25 && ch <= 36)
     return 40;
-  else if (ch >= 38 && ch <= 43)
+  else if (ch >= 37 && ch <= 42)
     return 80;
-  else if (ch == 44 || ch == 45)
+  else if (ch == 43 || ch == 44)
     return 160;
 
   return 20;
@@ -330,7 +353,8 @@ void Solution::computeInterference() {
         continue;
       }
 
-      if (overlap[u.ch - 1][v.ch - 1]) {
+//      assert(u.ch - 1 >= 0 && v.ch -1 >= 0);
+      if (overlap[u.ch][v.ch]) {
         u.interference += interferenceMatrix[v._idS][u._idR];
       }
     }
@@ -444,17 +468,17 @@ deque<Link> Solution::getLinksInChannel(int ch) const {
 HeuristicDecoder::HeuristicDecoder() {
   readFile();
 
-  chToLinks[25] = vector<int>();
+  chToLinks[24] = vector<int>();
+  chToLinks[41] = vector<int>();
   chToLinks[42] = vector<int>();
   chToLinks[43] = vector<int>();
   chToLinks[44] = vector<int>();
-  chToLinks[45] = vector<int>();
   mapSplitChannels();
-  dfs(44);
-  dfs(45);
-  dfs(42);
   dfs(43);
-  //dfs(25); //TODO: need this?
+  dfs(44);
+  dfs(41);
+  dfs(42);
+  //dfs(24); //TODO: need this?
 }
 
 void Solution::setChannelOfLink(int id, int channel) {

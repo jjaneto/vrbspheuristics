@@ -3,7 +3,6 @@
 const int K_MAX = 50;
 
 HeuristicDecoder *heu;
-vector<Link> nonScheduledLinks;
 double maximumTime;
 clock_t startTime;
 
@@ -11,7 +10,7 @@ bool isStoppingCriteriaReached() {
   return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
 }
 
-int betaAddDrop(const Solution current, Link link) {
+int addDrop(const Solution current, Link link) {
   vector<int> channels = current.getScheduledChannels();
   int bestChannel = -1;
 
@@ -34,20 +33,58 @@ int betaAddDrop(const Solution current, Link link) {
 }
 
 void betaAddDrop(Solution &current, int beta = 1) {
+//  for (int i = 0; i < beta; i++) {
+//    assert(nonScheduledLinks.empty());
+//    int rndIndex = rng.randInt(nonScheduledLinks.size() - 1);
+////    printf("addDrop no link %d\n", nonScheduledLinks[rndIndex].id);
+//    int bestChannel = addDrop(current, nonScheduledLinks[rndIndex]);
+//    assert(bestChannel != -1);
+//
+//    Link toInsert(nonScheduledLinks[rndIndex]);
+//    toInsert.setChannel(bestChannel);
+//    current.insert(toInsert);
+//
+//    swap(nonScheduledLinks[rndIndex], nonScheduledLinks.back());
+//    nonScheduledLinks.pop_back();
+//  }
+
+
+//  printf("entrando com beta %d\n", beta);
+
+  set<int> linksNotScheduled;
+  for (int i = 0; i < heu->getQuantConnections(); i++)
+    linksNotScheduled.insert(i);
+
+  for (const Link &x : current.getScheduledLinks()) {
+    linksNotScheduled.erase(x.id);
+  }
+
+  vector<int> arrNotScheduled;
+  for (const int &id : linksNotScheduled) {
+    arrNotScheduled.emplace_back(id);
+  }
+
+//  puts("      passandoooooo");
+
   for (int i = 0; i < beta; i++) {
-    assert(nonScheduledLinks.empty());
-    int rndIndex = rng.randInt(nonScheduledLinks.size() - 1);
-//    printf("betaAddDrop no link %d\n", nonScheduledLinks[rndIndex].id);
-    int bestChannel = betaAddDrop(current, nonScheduledLinks[rndIndex]);
+    assert(!arrNotScheduled.empty());
+    int rndIndex = rng.randInt(arrNotScheduled.size() - 1);
+//    printf("          rndIndex eh %d size eh %d\n", rndIndex, arrNotScheduled.size());
+    const Link auxLink(arrNotScheduled[rndIndex]);
+//    puts("   passei");
+    int bestChannel = addDrop(current, auxLink);
+//    puts("          aha!");
     assert(bestChannel != -1);
 
-    Link toInsert(nonScheduledLinks[rndIndex]);
+    Link toInsert(auxLink);
     toInsert.setChannel(bestChannel);
     current.insert(toInsert);
 
-    swap(nonScheduledLinks[rndIndex], nonScheduledLinks.back());
-    nonScheduledLinks.pop_back();
+    swap(arrNotScheduled[rndIndex], arrNotScheduled.back());
+    arrNotScheduled.pop_back();
   }
+
+//  puts("       -> saindo...");
 }
 
 void betaReinsert(Solution &current, int beta = 1) {
@@ -59,7 +96,7 @@ void betaReinsert(Solution &current, int beta = 1) {
       rndIndex = rng.randInt(current.getNumberOfScheduledLinks() - 1);
 
     Link rmvLink = current.removeLinkByIndex(rndIndex);
-    int bestChannel = betaAddDrop(current, rmvLink);
+    int bestChannel = addDrop(current, rmvLink);
     assert(bestChannel != -1);
 
     rmvLink.setChannel(bestChannel);
@@ -67,11 +104,12 @@ void betaReinsert(Solution &current, int beta = 1) {
   }
 }
 
-Solution solve(Solution S, int channel) { //TODO: need to implement origChannel variable.
+Solution solve(Solution S, int channel) {
   if (bwIdx(channel) > 0) {
     Solution S1, S2;
 
     for (const Link &link_ : S.getScheduledLinks()) {
+      assert(link_.origChannel != -1);
       char moveTo = PATH_TO[link_.ch][link_.origChannel][bwIdx(link_.ch)];
       assert(moveTo == 'L' || moveTo == 'R');
 
@@ -102,33 +140,84 @@ Solution solve(Solution S, int channel) { //TODO: need to implement origChannel 
   return S;
 }
 
-Solution buildRootSolution(const Solution &curr, int root) {
-    Solution ret;
+Solution buildRootSolution(const Solution &curr, const int root) {
+  Solution ret;
 
-    for (const Link &x : curr.getScheduledLinks()) {
-      if (overlap[x.getChannel()][root]) {
-        Link newLink(x);
-        newLink.setChannel(root);
-        ret.insert(newLink);
-      }
+  for (const Link &x : curr.getScheduledLinks()) {
+//    assert(x.ch - 1 >= 0 && root - 1 >= 0);
+    if (overlap[x.ch][root]) {
+      Link newLink(x);
+      newLink.setChannel(root);
+      ret.insert(newLink);
     }
+  }
 
-    return ret;
+  return ret;
 }
 
 Solution solve(Solution S) {
   Solution arr[5];
 
-  arr[0] = solve(buildRootSolution(S, 45), 45);
-  arr[1] = solve(buildRootSolution(S, 44), 44);
-  arr[2] = solve(buildRootSolution(S, 43), 43);
-  arr[3] = solve(buildRootSolution(S, 42), 42);
-  arr[4] = solve(buildRootSolution(S, 25), 25);
+  typedef Solution SOL;
+  SOL aux1 = buildRootSolution(S, 44);
+  arr[0] = solve(buildRootSolution(S, 44), 44);
+
+  SOL aux2 = buildRootSolution(S, 43);
+  arr[1] = solve(buildRootSolution(S, 43), 43);
+
+  SOL aux3 = buildRootSolution(S, 42);
+  arr[2] = solve(buildRootSolution(S, 42), 42);
+
+  SOL aux4 = buildRootSolution(S, 41);
+  arr[3] = solve(buildRootSolution(S, 41), 41);
+
+  SOL aux5 = buildRootSolution(S, 24);
+  arr[4] = solve(buildRootSolution(S, 24), 24);
 
   Solution final_;
   for (const Solution &s_ : arr) {
     final_.addLinks(s_.getScheduledLinks());
   }
+
+  if (final_.getNumberOfScheduledLinks() > heu->getQuantConnections()) {
+    puts("---------> PRINTING SOL");
+    for (const Link &x : S.getScheduledLinks()) {
+      x.printLink();
+    }
+
+    puts("---------------------> aux 1");
+    for (const Link &x : aux1.getScheduledLinks()) {
+      x.printLink();
+//      assert(x.ch == -1);
+    }
+
+    puts("---------------------> aux 2");
+    for (const Link &x : aux2.getScheduledLinks()) {
+      x.printLink();
+//      assert(x.ch == -1);
+    }
+
+    puts("---------------------> aux 3");
+    for (const Link &x : aux3.getScheduledLinks()) {
+      x.printLink();
+//      assert(x.ch == -1);
+    }
+
+    puts("---------------------> aux 4");
+    for (const Link &x : aux4.getScheduledLinks()) {
+      x.printLink();
+//      assert(x.ch == -1);
+    }
+
+    puts("---------------------> aux 5");
+    for (const Link &x : aux5.getScheduledLinks()) {
+      x.printLink();
+//      assert(x.ch == -1);
+    }
+  }
+  assert(final_.getNumberOfScheduledLinks() <= heu->getQuantConnections());
+//  printf("S LINKS %d || FINAL HAS %d LINKS\n", S.getNumberOfScheduledLinks(), final_.getNumberOfScheduledLinks());
+//  this_thread::sleep_for(chrono::milliseconds(5));
 
   return final_;
 }
@@ -157,46 +246,78 @@ Solution convert(const Solution &aux) {
 }
 
 Solution localSearch(Solution current) {
-  bool improve = true;
   Solution S_star = convert(current);
   Solution S(S_star), S_2(S_star);
 
-  while (improve) {
-    for (Link active : S.getScheduledLinks()) {
-      //TODO: Do I need SCopy here? Kinda lost
-      //TODO: see split() function. Variable origChannel with wrong values.
+//  printf("S_STAR objective %lf\n", S_star.getObjective());
 
-      for (int channel20 : channels20MHz) {
+  while (true) {
+//    puts(" HAHAAHAHAHA");
+    for (const Link &active : S.getScheduledLinks()) {
+      //TODO: Do I need SCopy here? Kinda lost
+//      printf("          vruuuuuum \n");
+
+      for (const int channel20 : channels20MHz) {
         if (channel20 == active.getChannel())
           continue;
 
+//        puts("            BEGIN");
+
         Solution S_1(S);
+
+        for (const Link &x : S_1.getScheduledLinks()) {
+//          puts("PORRA");
+          assert(x.ch != -1);
+        }
+
 //      active.printLink();
         assert(S_1.removeLink(active)); //Testando se a funcao vai funcionar corretamente
 
         Link aux(active);
         aux.setChannel(channel20);
         S_1.insert(aux);
-        solve(S_1);
+
+        for (const Link &x : S_1.getScheduledLinks()) {
+          assert(x.ch != -1);
+        }
+
+
+        S_1 = solve(S_1);
+
+        for (const Link &x : S_1.getScheduledLinks()) {
+          assert(x.ch != -1);
+        }
+
+        //        printf("links S_1 %d || S_2 %d || S %d\n", S_1.getNumberOfScheduledLinks(), S_2.getNumberOfScheduledLinks(), S.getNumberOfScheduledLinks());
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
       }
+    }
 
-      if (S_2 > S_star) {
-        S_star = S_2;
-        S = S_2;
-      } else {
-        improve = false;
-      }
+    if (S_2 > S_star) {
+      S_star = S_2;
+      S = S_2;
+//      puts("aaaaaaaa");
+    } else {
+      break;
     }
   }
 
+//  puts("SAIR");
+
+
+//  printf("FINAL SOLUTION WITH throughput %lf\n", S.getObjective());
+//  for (const Link &x : S.getScheduledChannels()) {
+//    x.printLink();
+//  }
+//
+//  this_thread::sleep_for(chrono::seconds(5));
   return S;
 }
 
 Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
   double threeshold = rng.rand();
-  if (threeshold >= .5) {
+  if (threeshold >= .5 && (S.getNumberOfScheduledLinks() < heu->getQuantConnections())) {
     betaAddDrop(S, lround(NUMBER_OF_LINKS * k * 0.01));
   } else {
     betaReinsert(S, lround(NUMBER_OF_LINKS * k * 0.01));
@@ -211,9 +332,6 @@ void init() {
 #endif
 
   heu = new HeuristicDecoder();
-  for (int i = 0; i < heu->getQuantConnections(); i++) {
-    nonScheduledLinks.emplace_back(Link(i));
-  }
   maximumTime = 10;
 }
 
@@ -225,18 +343,28 @@ int main(int argc, char *argv[]) {
   Solution S_dummy = heu->generateSolution();
   Solution S = localSearch(S_dummy);
   while (!isStoppingCriteriaReached()) {
+//    puts("iha!");
     int k = 1;
+    int cnt = 0;
     while (k < K_MAX) {
+//      printf("hmmm %d\n", k);
       Solution S_1 = pertubation(S, k, NUMBER_OF_LINKS);
       Solution S_2 = localSearch(S_1);
 
-      if (S_2.getObjective() > S_1.getObjective()) {
+      if (S_2.getObjective() > S.getObjective()) {
+//        printf("comparing %lf with %lf\n", S_2.getObjective(), S.getObjective());
         S = S_2;
         k = 1;
       } else {
         k++;
       }
     }
+  }
+
+  printf("OBJECTIVE %lf\n", S.getObjective());
+  for (const Link &x : S.getScheduledLinks()) {
+    x.printLink();
+//      assert(x.ch == -1);
   }
 
   delete heu;
