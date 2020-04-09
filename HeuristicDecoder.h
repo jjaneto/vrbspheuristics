@@ -20,6 +20,7 @@
 #include <set>
 #include <map>
 #include <cstring>
+#include <cassert>
 
 #include <thread>
 #include <chrono>
