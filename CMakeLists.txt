@@ -14,7 +14,7 @@ include_directories(.)
 #set(OPENMP_INCLUDES "/usr/local/Cellar/libomp/9.0.1/include")
 
 OPTION (USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
-add_compile_definitions(DEBUG_CLION)
+#add_compile_definitions(DEBUG_CLION)
 
 # Find OpenMP
 if(APPLE AND USE_OpenMP)

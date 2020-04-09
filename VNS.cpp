@@ -144,7 +144,6 @@ Solution buildRootSolution(const Solution &curr, const int root) {
   Solution ret;
 
   for (const Link &x : curr.getScheduledLinks()) {
-//    assert(x.ch - 1 >= 0 && root - 1 >= 0);
     if (overlap[x.ch][root]) {
       Link newLink(x);
       newLink.setChannel(root);
@@ -158,66 +157,27 @@ Solution buildRootSolution(const Solution &curr, const int root) {
 Solution solve(Solution S) {
   Solution arr[5];
 
-  typedef Solution SOL;
-  SOL aux1 = buildRootSolution(S, 44);
+//  typedef Solution SOL;
+//  SOL aux1 = buildRootSolution(S, 44);
   arr[0] = solve(buildRootSolution(S, 44), 44);
 
-  SOL aux2 = buildRootSolution(S, 43);
+//  SOL aux2 = buildRootSolution(S, 43);
   arr[1] = solve(buildRootSolution(S, 43), 43);
 
-  SOL aux3 = buildRootSolution(S, 42);
+//  SOL aux3 = buildRootSolution(S, 42);
   arr[2] = solve(buildRootSolution(S, 42), 42);
 
-  SOL aux4 = buildRootSolution(S, 41);
+//  SOL aux4 = buildRootSolution(S, 41);
   arr[3] = solve(buildRootSolution(S, 41), 41);
 
-  SOL aux5 = buildRootSolution(S, 24);
+//  SOL aux5 = buildRootSolution(S, 24);
   arr[4] = solve(buildRootSolution(S, 24), 24);
 
   Solution final_;
   for (const Solution &s_ : arr) {
     final_.addLinks(s_.getScheduledLinks());
   }
-
-  if (final_.getNumberOfScheduledLinks() > heu->getQuantConnections()) {
-    puts("---------> PRINTING SOL");
-    for (const Link &x : S.getScheduledLinks()) {
-      x.printLink();
-    }
-
-    puts("---------------------> aux 1");
-    for (const Link &x : aux1.getScheduledLinks()) {
-      x.printLink();
-//      assert(x.ch == -1);
-    }
-
-    puts("---------------------> aux 2");
-    for (const Link &x : aux2.getScheduledLinks()) {
-      x.printLink();
-//      assert(x.ch == -1);
-    }
-
-    puts("---------------------> aux 3");
-    for (const Link &x : aux3.getScheduledLinks()) {
-      x.printLink();
-//      assert(x.ch == -1);
-    }
-
-    puts("---------------------> aux 4");
-    for (const Link &x : aux4.getScheduledLinks()) {
-      x.printLink();
-//      assert(x.ch == -1);
-    }
-
-    puts("---------------------> aux 5");
-    for (const Link &x : aux5.getScheduledLinks()) {
-      x.printLink();
-//      assert(x.ch == -1);
-    }
-  }
   assert(final_.getNumberOfScheduledLinks() <= heu->getQuantConnections());
-//  printf("S LINKS %d || FINAL HAS %d LINKS\n", S.getNumberOfScheduledLinks(), final_.getNumberOfScheduledLinks());
-//  this_thread::sleep_for(chrono::milliseconds(5));
 
   return final_;
 }
@@ -249,28 +209,20 @@ Solution localSearch(Solution current) {
   Solution S_star = convert(current);
   Solution S(S_star), S_2(S_star);
 
-//  printf("S_STAR objective %lf\n", S_star.getObjective());
-
   while (true) {
-//    puts(" HAHAAHAHAHA");
     for (const Link &active : S.getScheduledLinks()) {
       //TODO: Do I need SCopy here? Kinda lost
-//      printf("          vruuuuuum \n");
 
       for (const int channel20 : channels20MHz) {
         if (channel20 == active.getChannel())
           continue;
 
-//        puts("            BEGIN");
-
         Solution S_1(S);
 
         for (const Link &x : S_1.getScheduledLinks()) {
-//          puts("PORRA");
           assert(x.ch != -1);
         }
 
-//      active.printLink();
         assert(S_1.removeLink(active)); //Testando se a funcao vai funcionar corretamente
 
         Link aux(active);
@@ -281,14 +233,11 @@ Solution localSearch(Solution current) {
           assert(x.ch != -1);
         }
 
-
         S_1 = solve(S_1);
 
         for (const Link &x : S_1.getScheduledLinks()) {
           assert(x.ch != -1);
         }
-
-        //        printf("links S_1 %d || S_2 %d || S %d\n", S_1.getNumberOfScheduledLinks(), S_2.getNumberOfScheduledLinks(), S.getNumberOfScheduledLinks());
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
       }
@@ -297,21 +246,11 @@ Solution localSearch(Solution current) {
     if (S_2 > S_star) {
       S_star = S_2;
       S = S_2;
-//      puts("aaaaaaaa");
     } else {
       break;
     }
   }
 
-//  puts("SAIR");
-
-
-//  printf("FINAL SOLUTION WITH throughput %lf\n", S.getObjective());
-//  for (const Link &x : S.getScheduledChannels()) {
-//    x.printLink();
-//  }
-//
-//  this_thread::sleep_for(chrono::seconds(5));
   return S;
 }
 
@@ -325,34 +264,52 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
   return S;
 }
 
-void init() {
+void init(const string openingFile = "") {
 #ifdef DEBUG_CLION
   puts("WITH DEBUG");
   freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
 #endif
+
+  if (!openingFile.empty()) {
+    fprintf(stderr, "trying to open input file %s\n", openingFile.c_str());
+    freopen(openingFile.c_str(), "r", stdin);
+
+    if (stdin == NULL) {
+      fprintf(stderr, "error opening input file\n");
+      exit(-1);
+    }
+  }
 
   heu = new HeuristicDecoder();
   maximumTime = 10;
 }
 
 int main(int argc, char *argv[]) {
-  init();
+  if (argc != 3) {
+    fprintf(stderr, "wrong arguments\n");
+    exit(-1);
+  }
+
+  FILE *solutionFile = fopen(argv[2], "a");
+
+  if (solutionFile == NULL) {
+    fprintf(stderr, "error opening solutionFile file\n");
+    exit(-1);
+  }
+
+  init(argv[1]);
   const int NUMBER_OF_LINKS = heu->getQuantConnections();
   startTime = clock();
   //--------------------------------------------------------
   Solution S_dummy = heu->generateSolution();
   Solution S = localSearch(S_dummy);
   while (!isStoppingCriteriaReached()) {
-//    puts("iha!");
     int k = 1;
-    int cnt = 0;
     while (k < K_MAX) {
-//      printf("hmmm %d\n", k);
       Solution S_1 = pertubation(S, k, NUMBER_OF_LINKS);
       Solution S_2 = localSearch(S_1);
 
       if (S_2.getObjective() > S.getObjective()) {
-//        printf("comparing %lf with %lf\n", S_2.getObjective(), S.getObjective());
         S = S_2;
         k = 1;
       } else {
@@ -361,12 +318,14 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("OBJECTIVE %lf\n", S.getObjective());
+  printf("%lf\n", S.getObjective());
+
+  fprintf(solutionFile, "OBJECTIVE %lf\n", S.getObjective());
   for (const Link &x : S.getScheduledLinks()) {
-    x.printLink();
-//      assert(x.ch == -1);
+    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
   }
 
+  fclose(solutionFile);
   delete heu;
   return 0;
 }

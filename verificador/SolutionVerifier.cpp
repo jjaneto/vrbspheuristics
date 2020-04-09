@@ -59,6 +59,8 @@ int overlap[45][45] = {{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                        {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0},
                        {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}};
 
+int whichBw(int ch);
+
 struct Link {
   int _idR, _idS;
   int id;
@@ -68,6 +70,11 @@ struct Link {
   double interference;
   double SINR;
   int MCS;
+
+  Link (int id_, int ch_) : id(id_), ch(ch_) {
+    _idR = _idS = id_;
+    bw = whichBw(ch_);
+  }
 };
 
 
@@ -161,15 +168,12 @@ void computeInterference() {
     u.interference = 0.0;
     u.SINR = 0.0;
     for (Link &v : scheduled_links) {
-
-//      if (u == v) {
-//        continue;
-//      }
-
+      
       if (u.id == v.id) {
         continue;
       }
-      
+
+      //printf("(u) id %d ch %d || (v) id %d ch %d\n", u.id, u.ch, v.id, v.ch);
       if (overlap[u.ch][v.ch]) {
         u.interference += interferenceMatrix[v._idS][u._idR];
       }
@@ -263,14 +267,33 @@ void readFile() {
 }
 
 
-int main() {
-  FILE *solution = fopen("", "r");
-  freopen("", "r", stdin);
+int main(int argc, char **argv) {
+  if (argc != 3) {
+    fprintf(stderr, "wrong arguments\n");
+    exit(-1);
+  }
+  
+  FILE *solution = fopen(argv[1], "r");
+  freopen(argv[2], "r", stdin);
+  
+  if (solution == NULL) {
+    fprintf(stderr, "error opening solution file\n");
+    exit(-1);
+  }
+  
+  
+  if (stdin == NULL) {
+    fprintf(stderr, "error reopening stdin\n");
+    exit(-1);
+  }
+  
   readFile();
-
+  
   for (int i = 0; i < nConnections; i++) {
-    Link link;
-    fscanf(solution, "%d %d", &link.id, &link.ch);
+    int id, ch;
+    fscanf(solution, "%d %d", &id, &ch);
+    
+    Link link(id, ch);
     scheduled_links.emplace_back(link);
   }
 
