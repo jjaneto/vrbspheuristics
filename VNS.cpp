@@ -33,24 +33,6 @@ int addDrop(const Solution current, Link link) {
 }
 
 void betaAddDrop(Solution &current, int beta = 1) {
-//  for (int i = 0; i < beta; i++) {
-//    assert(nonScheduledLinks.empty());
-//    int rndIndex = rng.randInt(nonScheduledLinks.size() - 1);
-////    printf("addDrop no link %d\n", nonScheduledLinks[rndIndex].id);
-//    int bestChannel = addDrop(current, nonScheduledLinks[rndIndex]);
-//    assert(bestChannel != -1);
-//
-//    Link toInsert(nonScheduledLinks[rndIndex]);
-//    toInsert.setChannel(bestChannel);
-//    current.insert(toInsert);
-//
-//    swap(nonScheduledLinks[rndIndex], nonScheduledLinks.back());
-//    nonScheduledLinks.pop_back();
-//  }
-
-
-//  printf("entrando com beta %d\n", beta);
-
   set<int> linksNotScheduled;
   for (int i = 0; i < heu->getQuantConnections(); i++)
     linksNotScheduled.insert(i);
@@ -64,16 +46,13 @@ void betaAddDrop(Solution &current, int beta = 1) {
     arrNotScheduled.emplace_back(id);
   }
 
-//  puts("      passandoooooo");
-
   for (int i = 0; i < beta; i++) {
     assert(!arrNotScheduled.empty());
     int rndIndex = rng.randInt(arrNotScheduled.size() - 1);
-//    printf("          rndIndex eh %d size eh %d\n", rndIndex, arrNotScheduled.size());
     const Link auxLink(arrNotScheduled[rndIndex]);
-//    puts("   passei");
+
     int bestChannel = addDrop(current, auxLink);
-//    puts("          aha!");
+
     assert(bestChannel != -1);
 
     Link toInsert(auxLink);
@@ -83,8 +62,6 @@ void betaAddDrop(Solution &current, int beta = 1) {
     swap(arrNotScheduled[rndIndex], arrNotScheduled.back());
     arrNotScheduled.pop_back();
   }
-
-//  puts("       -> saindo...");
 }
 
 void betaReinsert(Solution &current, int beta = 1) {
@@ -219,25 +196,13 @@ Solution localSearch(Solution current) {
 
         Solution S_1(S);
 
-        for (const Link &x : S_1.getScheduledLinks()) {
-          assert(x.ch != -1);
-        }
-
         assert(S_1.removeLink(active)); //Testando se a funcao vai funcionar corretamente
 
         Link aux(active);
         aux.setChannel(channel20);
         S_1.insert(aux);
 
-        for (const Link &x : S_1.getScheduledLinks()) {
-          assert(x.ch != -1);
-        }
-
         S_1 = solve(S_1);
-
-        for (const Link &x : S_1.getScheduledLinks()) {
-          assert(x.ch != -1);
-        }
 
         S_2 = (S_1 > S_2) ? S_1 : S_2;
       }
