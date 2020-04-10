@@ -14,7 +14,7 @@ int addDrop(const Solution current, Link link) {
   vector<int> channels = current.getScheduledChannels();
   int bestChannel = -1;
 
-  Solution dummy;
+  Solution toRet(current);
 
   for (int ch : channels) {
     Solution aux(current);
@@ -23,12 +23,14 @@ int addDrop(const Solution current, Link link) {
 
     aux.insert(copyLink);
 
-    if (aux > dummy) { //FIXME: Should I return the best solution from this loop or only if its better than current?
-      dummy = aux;
+    printf("will compare %lf and %lf\n", aux.getObjective(), toRet.getObjective());
+    if(aux > toRet) { //FIXME: Should I return the best solution from this loop or only if its better than current?
+      toRet = aux;
       bestChannel = ch;
     }
   }
 
+  assert(bestChannel != -1);
   return bestChannel;
 }
 
@@ -45,6 +47,9 @@ void betaAddDrop(Solution &current, int beta = 1) {
   for (const int &id : linksNotScheduled) {
     arrNotScheduled.emplace_back(id);
   }
+
+  if (arrNotScheduled.size() < beta)
+    beta = arrNotScheduled.size();
 
   for (int i = 0; i < beta; i++) {
     assert(!arrNotScheduled.empty());
