@@ -69,6 +69,10 @@ void betaAddDrop(Solution &current, int beta = 1) {
 
 void betaReinsert(Solution &current, int beta = 1) {
   unordered_set<int> usedLinks;
+
+  if (current.getNumberOfScheduledLinks() < beta)
+    beta = current.getNumberOfScheduledLinks();
+
   for (int i = 0; i < beta; i++) {
     int rndIndex = rng.randInt(current.getNumberOfScheduledLinks() - 1);
 
