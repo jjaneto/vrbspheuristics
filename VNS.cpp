@@ -10,7 +10,7 @@ bool isStoppingCriteriaReached() {
   return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
 }
 
-int addDrop(const Solution current, Link link) {
+int addDrop(const Solution &current, const Link &link) {
   vector<int> channels = current.getScheduledChannels();
   int bestChannel = -1;
 
@@ -110,7 +110,7 @@ Solution solve(Solution S, int channel) {
     Solution solToLeft = solve(S1, mapChtoCh[channel].first);
     Solution solToRight = solve(S2, mapChtoCh[channel].second);
 
-    if (solToLeft.getObjective() + solToRight.getObjective()) {
+    if (solToLeft.getObjective() + solToRight.getObjective() > S.getObjective()) {
       deque<Link> newLinks(solToLeft.getScheduledLinks());
       for (const Link &link_ : solToRight.getScheduledLinks()) {
         newLinks.emplace_back(link_);
@@ -189,7 +189,7 @@ Solution convert(const Solution &aux) {
   return ret;
 }
 
-Solution localSearch(Solution current) {
+Solution localSearch(const Solution& current) {
   Solution S_star = convert(current);
   Solution S(S_star), S_2(S_star);
 
@@ -236,7 +236,7 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
   return S;
 }
 
-void init(const string openingFile = "") {
+void init(const string &openingFile = "") {
 #ifdef DEBUG_CLION
   puts("WITH DEBUG");
   freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
