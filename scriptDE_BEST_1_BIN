@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-variant="DE_BEST_1_BIN"
-
-for i in 32 64 128; do
-for ((j = 1; j <= 15; j++)); do 
-./main${variant} < Instancias/D250x250/U_${i}/U_${i}_${j}.txt > objectives${variant} 2> error${variant}.txt;
-done;
-done;
