@@ -292,7 +292,7 @@ void Link::printLink() const {
 
 Solution::Solution(const Solution &o1) {
   objective = o1.objective;
-//  scheduled_links = o1.scheduled_links;
+  objectiveFlag = o1.objectiveFlag;
   for (int i = 0; i < o1.scheduled_links.size(); i++) {
     scheduled_links.push_back(o1.scheduled_links[i]);
   }
@@ -300,6 +300,7 @@ Solution::Solution(const Solution &o1) {
 
 Solution::Solution() {
   objective = 0.0;
+  objectiveFlag = true;
 }
 
 //Solution &Solution::operator=(const Solution &o1) {
@@ -309,11 +310,20 @@ Solution::Solution() {
 //}
 
 bool operator<(const Solution &o1, const Solution &o2) {
+  assert(o1.objectiveFlag && o2.objectiveFlag);
   return o1.objective < o2.objective;
 }
 
 bool operator>(const Solution &o1, const Solution &o2) {
-  return o1.objective > o2.objective;
+  return operator<(o2, o1);
+}
+
+bool operator>=(const Solution &o1, const Solution &o2) {
+  return !operator<(o1, o2);
+}
+
+bool operator<=(const Solution &o1, const Solution &o2) {
+  return !operator>(o1, o2);
 }
 
 bool operator==(const Solution &o1, const Solution &o2) {
@@ -417,15 +427,19 @@ void Solution::computeObjective(bool show) {
     }
     objective += dataRates[x.MCS][bwIdx(x.bw)];
   }
+
+  objectiveFlag = true;
 }
 
 void Solution::insert(const Link &l) {
   scheduled_links.emplace_back(l);
+
+  objectiveFlag = false;
   //TODO: Do I really need this?
-  computeInterference();
+//  computeInterference();
 
   objective = 0.0;
-  computeObjective();
+//  computeObjective();
 }
 
 void Solution::clearChannel(int ch) {
@@ -487,6 +501,7 @@ void Solution::setChannelOfLink(int id, int channel) {
       x.setChannel(channel);
     }
   }
+  objectiveFlag = false;
 }
 
 void split(Solution &dest, Solution &src, int ch, bool ok) {
@@ -497,6 +512,7 @@ void split(Solution &dest, Solution &src, int ch, bool ok) {
   if (links.size() < 2) {
     if (ok && !links.empty()) {
       src.setChannelOfLink(links[0].id, ch1);
+      src.computeObjective();
       dest = src;
     }
     return;
@@ -549,6 +565,8 @@ void split(Solution &dest, Solution &src, int ch, bool ok) {
   newly.insert(largest1);
   newly.insert(largest2);
 
+  newly.computeObjective();
+
   while (!links.empty()) {
     int rndIndex = rng.randInt(links.size() - 1);
     Link link = links[rndIndex];
@@ -560,6 +578,9 @@ void split(Solution &dest, Solution &src, int ch, bool ok) {
 
     copy1.insert(dummy1);
     copy2.insert(dummy2);
+
+    copy1.computeObjective();
+    copy2.computeObjective();
 
     newly = (copy1 > copy2) ? copy1 : copy2;
 
@@ -579,11 +600,6 @@ void split(Solution &dest, Solution &src, int ch, bool ok) {
 
 inline void decideBest(Solution &f, const Solution &u, const Solution &v) {
   if (u > f || v > f) {
-    if (u > v) {
-//      fprintf(stderr, "best solution is S1 with objective %.2lf\n", u.getObjective());
-    } else if (v > u) {
-//      fprintf(stderr, "DIVIDIR FO MELHOR S2 with objective %.2lf\n", v.getObjective());
-    }
     f = (u > v) ? u : v;
   }
 }
@@ -594,11 +610,10 @@ Solution HeuristicDecoder::generateSolution() {
     links.emplace_back(i);
 
   Solution S;
-  int cont = 0;
   while (!links.empty()) {
-    int idx = rand() % (links.size());
+    int idx = rng.randInt(links.size() - 1);
     int link = links[idx];
-    //fprintf(stderr, "link %d\n", link);
+
     //-------------
     Solution Scopy(S);
     for (auto &el : chToLinks) {
@@ -611,11 +626,14 @@ Solution HeuristicDecoder::generateSolution() {
       if (whichBw(ch) > 20) {
         split(S2, S1, ch);
       }
-
       //
+      Scopy.computeObjective();
+      S1.computeObjective();
+      S2.computeObjective();
       decideBest(Scopy, S1, S2);
       //
     }
+
     if (Scopy > S) {
       S = Scopy;
     }
@@ -718,12 +736,14 @@ void Solution::exchangeLinks(int idOldLink, Link newLink) {
 
 void Solution::setScheduledLinks(const deque<Link> newLinks) {
   this->scheduled_links = newLinks;
+  objectiveFlag = false;
 }
 
 void Solution::addLinks(const deque<Link> &links) {
   for (const Link &link_ : links) {
     insert(link_);
   }
+  objectiveFlag = false;
 }
 
 vector<int> Solution::getScheduledChannels() const {

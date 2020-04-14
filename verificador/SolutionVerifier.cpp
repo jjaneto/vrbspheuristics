@@ -62,19 +62,19 @@ int overlap[45][45] = {{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 int whichBw(int ch);
 
 struct Link {
-  int _idR, _idS;
-  int id;
-  int ch;
-  int bw;
-  double distanceSenderReceiver;
-  double interference;
-  double SINR;
-  int MCS;
+    int _idR, _idS;
+    int id;
+    int ch;
+    int bw;
+    double distanceSenderReceiver;
+    double interference;
+    double SINR;
+    int MCS;
 
-  Link (int id_, int ch_) : id(id_), ch(ch_) {
-    _idR = _idS = id_;
-    bw = whichBw(ch_);
-  }
+    Link(int id_, int ch_) : id(id_), ch(ch_) {
+      _idR = _idS = id_;
+      bw = whichBw(ch_);
+    }
 };
 
 
@@ -168,7 +168,7 @@ void computeInterference() {
     u.interference = 0.0;
     u.SINR = 0.0;
     for (Link &v : scheduled_links) {
-      
+
       if (u.id == v.id) {
         continue;
       }
@@ -195,7 +195,7 @@ double computeObjective() {
     bool go = false;
 
     for (int _mcs = 0; _mcs < mxDataRate; _mcs++) {
-      
+
       if (SINR[_mcs][bwIdx(x.bw)] > x.SINR) {
         x.MCS = _mcs - 1;
         go = true;
@@ -272,36 +272,47 @@ int main(int argc, char **argv) {
     fprintf(stderr, "wrong arguments\n");
     exit(-1);
   }
-  
+
   FILE *solution = fopen(argv[1], "r");
   freopen(argv[2], "r", stdin);
-  
+
   if (solution == NULL) {
-    fprintf(stderr, "error opening solution file\n");
+    perror("Error in solution file due by");
     exit(-1);
   }
-  
-  
+
+
   if (stdin == NULL) {
-    fprintf(stderr, "error reopening stdin\n");
+    perror("Error in stdin due by");
     exit(-1);
   }
-  
+
   readFile();
-  
-  for (int i = 0; i < nConnections; i++) {
-    int id, ch;
-    fscanf(solution, "%d %d", &id, &ch);
-    
+
+  int id, ch, cnt = 0;
+  while (fscanf(solution, "%d %d", &id, &ch) != EOF) {
     Link link(id, ch);
     scheduled_links.emplace_back(link);
+    cnt++;
   }
+
+  printf("li %d links, maximo era %d\n", cnt, nConnections);
+
+//  for (int i = 0; i < nConnections; i++) {
+//    int id, ch;
+//    fscanf(solution, "%d %d", &id, &ch);
+//    printf("li %d %d\n", id, ch);
+//    
+//    Link link(id, ch);
+//    scheduled_links.emplace_back(link);
+//  }
 
   fclose(solution);
   double objective = computeObjective();
   printf("OBJECTIVE: %lf\n", objective);
   for (const Link &link : scheduled_links) {
-    printf("link %d: ch %d || bw %d || SINR %lf || inter %lf\n", link.id, link.ch, link.bw, link.SINR, link.interference);
+    printf("link %d: ch %d || bw %d || SINR %lf || inter %lf\n", link.id, link.ch, link.bw, link.SINR,
+           link.interference);
   }
   return 0;
 }

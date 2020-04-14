@@ -123,6 +123,8 @@ public:
     double objective;
     deque<Link> scheduled_links;
 
+    bool objectiveFlag;
+
     Solution();
 
     Solution(const Solution &o1);
@@ -138,6 +140,8 @@ public:
     void clearChannel(int channel);
 
     void insert(const Link &l);
+
+    void setObjectiveFlag(bool value);
 
     bool removeLink(Link link);
 
@@ -163,15 +167,21 @@ public:
 
     deque<Link> getLinksInChannel(int ch) const;
 
+
     friend bool operator<(const Solution &o1, const Solution &o2);
 
     friend bool operator>(const Solution &o1, const Solution &o2);
+
+    friend bool operator>=(const Solution &o1, const Solution &o2);
+
+    friend bool operator<=(const Solution &o1, const Solution &o2);
 
     friend bool operator==(const Solution &o1, const Solution &o2);
 
     void operator=(const Solution &o) {
       objective = o.objective;
       scheduled_links = o.scheduled_links;
+      objectiveFlag = o.objectiveFlag;
     }
 };
 

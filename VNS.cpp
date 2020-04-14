@@ -11,6 +11,7 @@ bool isStoppingCriteriaReached() {
 }
 
 int addDrop(const Solution &current, const Link &link) {
+//  puts("ASDASADASDASDA");
   vector<int> channels = current.getScheduledChannels();
   int bestChannel = -1;
 
@@ -23,6 +24,8 @@ int addDrop(const Solution &current, const Link &link) {
 
     aux.insert(copyLink);
 
+//    printf("comparando %lf com %lf\n", aux.getObjective(), dummy.getObjective());
+    aux.computeObjective();
     if (aux > dummy) { //FIXME: Should I return the best solution from this loop or only if its better than current?
       dummy = aux;
       bestChannel = ch;
@@ -81,6 +84,12 @@ void betaReinsert(Solution &current, int beta = 1) {
 
     Link rmvLink = current.removeLinkByIndex(rndIndex);
     int bestChannel = addDrop(current, rmvLink);
+
+//    puts("???");
+    if (bestChannel == -1) {
+      puts("ok");
+      rmvLink.printLink();
+    }
     assert(bestChannel != -1);
 
     rmvLink.setChannel(bestChannel);
@@ -106,6 +115,9 @@ Solution solve(Solution S, int channel) {
         S2.insert(copy);
       }
     }
+
+    S1.computeObjective();
+    S2.computeObjective();
 
     Solution solToLeft = solve(S1, mapChtoCh[channel].first);
     Solution solToRight = solve(S2, mapChtoCh[channel].second);
@@ -135,10 +147,11 @@ Solution buildRootSolution(const Solution &curr, const int root) {
     }
   }
 
+  ret.computeObjective();
   return ret;
 }
 
-Solution solve(Solution S) {
+Solution solve(const Solution &S) {
   Solution arr[5];
 
 //  typedef Solution SOL;
@@ -163,6 +176,7 @@ Solution solve(Solution S) {
   }
   assert(final_.getNumberOfScheduledLinks() <= heu->getQuantConnections());
 
+  final_.computeObjective();
   return final_;
 }
 
@@ -189,15 +203,18 @@ Solution convert(const Solution &aux) {
   return ret;
 }
 
-Solution localSearch(const Solution& current) {
+Solution localSearch(const Solution &current) {
   Solution S_star = convert(current);
   Solution S(S_star), S_2(S_star);
 
+  //puts("hey!");
   while (true) {
     for (const Link &active : S.getScheduledLinks()) {
+      //puts("right?");
       //TODO: Do I need SCopy here? Kinda lost
 
       for (const int channel20 : channels20MHz) {
+        //puts("man...");
         if (channel20 == active.getChannel())
           continue;
 
@@ -211,7 +228,11 @@ Solution localSearch(const Solution& current) {
 
         S_1 = solve(S_1);
 
+//        puts("shit!");
+
         S_2 = (S_1 > S_2) ? S_1 : S_2;
+
+//        puts("hahahaha");
       }
     }
 
@@ -239,9 +260,8 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
 void init(const string &openingFile = "") {
 #ifdef DEBUG_CLION
   puts("WITH DEBUG");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
-#endif
-
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_256/U_256_1.txt", "r", stdin);
+#else
   if (!openingFile.empty()) {
     fprintf(stderr, "trying to open input file %s\n", openingFile.c_str());
     freopen(openingFile.c_str(), "r", stdin);
@@ -251,6 +271,7 @@ void init(const string &openingFile = "") {
       exit(-1);
     }
   }
+#endif
 
   heu = new HeuristicDecoder();
   maximumTime = 10;
@@ -273,11 +294,12 @@ int main(int argc, char *argv[]) {
   const int NUMBER_OF_LINKS = heu->getQuantConnections();
   startTime = clock();
   //--------------------------------------------------------
+
   Solution S_dummy = heu->generateSolution();
   Solution S = localSearch(S_dummy);
   while (!isStoppingCriteriaReached()) {
     int k = 1;
-    while (k < K_MAX) {
+    while (k < K_MAX && !isStoppingCriteriaReached()) {
       Solution S_1 = pertubation(S, k, NUMBER_OF_LINKS);
       Solution S_2 = localSearch(S_1);
 
