@@ -461,8 +461,10 @@ void Solution::clearChannel(int ch) {
   }
 }
 
-double Solution::getObjective() const {
-  assert(this->objectiveFlag);
+double Solution::getObjective(bool force) const {
+  if (!force)
+    assert(this->objectiveFlag);
+
   return objective;
 }
 
@@ -519,69 +521,69 @@ void split(Solution &dest, Solution &src, int ch, bool ok) {
     return;
   }
 
-  //TODO: Finish the code below. Get the pair of links with maximum mutual interference
-  deque<Link> scheduledLinks = src.getScheduledLinks();
-
-  double mxInter = -1.0;
-  int index1 = -1, index2 = -1;
-  for (int i = 0; i < int(scheduledLinks.size()); i++) {
-    for (int j = i + 1; j < int(scheduledLinks.size()); j++) {
-      if (interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id] > mxInter) {
-        mxInter = interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id];
-        index1 = i;
-        index2 = j;
-      }
-    }
-  }
-
-  Link largest1(scheduledLinks[index1]);
-  Link largest2(scheduledLinks[index2]);
-
-  largest1.setChannel(ch1);
-  largest2.setChannel(ch2);
-
-  Solution newly(src);
-
-  newly.clearChannel(ch);
-
-  newly.insert(largest1);
-  newly.insert(largest2);
-
-  newly.computeObjective();
-
-//  Link largest1;
-//  for (const Link &l : links) {
-//    if (l.interference > largest1.interference) {
-//      largest1 = l;
+//  //TODO: Finish the code below. Get the pair of links with maximum mutual interference
+//  deque<Link> scheduledLinks = src.getScheduledLinks();
+//
+//  double mxInter = -1.0;
+//  int index1 = -1, index2 = -1;
+//  for (int i = 0; i < int(scheduledLinks.size()); i++) {
+//    for (int j = i + 1; j < int(scheduledLinks.size()); j++) {
+//      if (interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id] > mxInter) {
+//        mxInter = interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id];
+//        index1 = i;
+//        index2 = j;
+//      }
 //    }
 //  }
 //
-//  Link largest2;
-//  for (const Link &l : links) {
-//    if (!(l == largest1) && (l.interference > largest2.interference)) {
-//      largest2 = l;
-//    }
-//  }
+//  Link largest1(scheduledLinks[index1]);
+//  Link largest2(scheduledLinks[index2]);
 //
-//  auto it = links.begin();
-//  while (it != links.end()) {
-//    if ((*it == largest1) || (*it == largest2)) {
-//      it = links.erase(it);
-//    } else {
-//      it++;
-//    }
-//  }
+//  largest1.setChannel(ch1);
+//  largest2.setChannel(ch2);
 //
 //  Solution newly(src);
 //
 //  newly.clearChannel(ch);
 //
-//  largest1.setChannel(ch1);
-//  largest2.setChannel(ch2);
 //  newly.insert(largest1);
 //  newly.insert(largest2);
 //
 //  newly.computeObjective();
+
+  Link largest1;
+  for (const Link &l : links) {
+    if (l.interference > largest1.interference) {
+      largest1 = l;
+    }
+  }
+
+  Link largest2;
+  for (const Link &l : links) {
+    if (!(l == largest1) && (l.interference > largest2.interference)) {
+      largest2 = l;
+    }
+  }
+
+  auto it = links.begin();
+  while (it != links.end()) {
+    if ((*it == largest1) || (*it == largest2)) {
+      it = links.erase(it);
+    } else {
+      it++;
+    }
+  }
+
+  Solution newly(src);
+
+  newly.clearChannel(ch);
+
+  largest1.setChannel(ch1);
+  largest2.setChannel(ch2);
+  newly.insert(largest1);
+  newly.insert(largest2);
+
+  newly.computeObjective();
 
   while (!links.empty()) {
     int rndIndex = rng.randInt(links.size() - 1);
@@ -624,12 +626,12 @@ Solution HeuristicDecoder::generateSolution() {
     links.emplace_back(i);
 
   Solution S;
-  set<int> seila;
-  seila.insert(24);
-  seila.insert(41);
-  seila.insert(42);
-  seila.insert(43);
-  seila.insert(44);
+  set<int> rootChannels;
+  rootChannels.insert(24);
+  rootChannels.insert(41);
+  rootChannels.insert(42);
+  rootChannels.insert(43);
+  rootChannels.insert(44);
   while (!links.empty()) {
     int idx = rng.randInt(links.size() - 1);
     int link = links[idx];
@@ -641,7 +643,7 @@ Solution HeuristicDecoder::generateSolution() {
 //      puts("asdas");
       availableChannels = {24, 42, 41, 43, 44};
     } else {
-      for (const int ch : seila) {
+      for (const int ch : rootChannels) {
         availableChannels.push_back(ch);
       }
     }
@@ -670,9 +672,9 @@ Solution HeuristicDecoder::generateSolution() {
 
     if (Scopy > S) {
       S = Scopy;
-      if (!seila.empty()) {
+      if (!rootChannels.empty()) {
         for (const int ch : S.getScheduledChannels()) {
-          seila.erase(ch);
+          rootChannels.erase(ch);
         }
       }
     }

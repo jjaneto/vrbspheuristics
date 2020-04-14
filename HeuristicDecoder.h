@@ -161,7 +161,7 @@ public:
 
     void addLinks(const deque<Link> &links);
 
-    double getObjective() const;
+    double getObjective(bool force = false) const;
 
     deque<Link> getScheduledLinks() const;
 

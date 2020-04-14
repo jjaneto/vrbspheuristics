@@ -260,7 +260,7 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
 void init(const string &openingFile = "", double timeLimit = 10) {
 #ifdef DEBUG_CLION
   puts("WITH DEBUG");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_256/U_256_1.txt", "r", stdin);
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
 #else
   if (!openingFile.empty()) {
     fprintf(stderr, "trying to open input file %s\n", openingFile.c_str());
@@ -275,6 +275,8 @@ void init(const string &openingFile = "", double timeLimit = 10) {
 
   heu = new HeuristicDecoder();
   maximumTime = timeLimit;
+
+  fprintf(stdout, "will execute for %lf seconds\n", maximumTime);
 }
 
 //int main(int argc, char *argv[]) {
@@ -312,7 +314,7 @@ int main(int argc, char *argv[]) {
     exit(-1);
   }
 
-  init(argv[1]);
+  init(argv[1], 10);
   const int NUMBER_OF_LINKS = heu->getQuantConnections();
   startTime = clock();
   //--------------------------------------------------------
