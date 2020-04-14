@@ -257,7 +257,7 @@ Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
   return S;
 }
 
-void init(const string &openingFile = "") {
+void init(const string &openingFile = "", double timeLimit = 10) {
 #ifdef DEBUG_CLION
   puts("WITH DEBUG");
   freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_256/U_256_1.txt", "r", stdin);
@@ -274,29 +274,7 @@ void init(const string &openingFile = "") {
 #endif
 
   heu = new HeuristicDecoder();
-  maximumTime = 10;
-}
-
-int main(int argc, char *argv[]) {
-  if (argc != 3) {
-    fprintf(stderr, "wrong arguments\n");
-    exit(-1);
-  }
-
-  init(argv[1]);
-  const int NUMBER_OF_LINKS = heu->getQuantConnections();
-  startTime = clock();
-  //--------------------------------------------------------
-
-  puts("comecar a brincadeira");
-  clock_t auxStart = clock();
-  Solution S_dummy = heu->generateSolution();
-  printf("total time: %lf\n", ((double) (clock() - auxStart)) / CLOCKS_PER_SEC);
-
-  fprintf(stdout, "OBJECTIVE %lf with %d scheduled links\n", S_dummy.getObjective(), S_dummy.getNumberOfScheduledLinks());
-  for (const Link &x : S_dummy.getScheduledLinks()) {
-    fprintf(stdout, "%d %d\n", x.id, x.ch);
-  }
+  maximumTime = timeLimit;
 }
 
 //int main(int argc, char *argv[]) {
@@ -305,43 +283,65 @@ int main(int argc, char *argv[]) {
 //    exit(-1);
 //  }
 //
-//  FILE *solutionFile = fopen(argv[2], "a");
-//
-//  if (solutionFile == NULL) {
-//    fprintf(stderr, "error opening solutionFile file\n");
-//    exit(-1);
-//  }
-//
 //  init(argv[1]);
 //  const int NUMBER_OF_LINKS = heu->getQuantConnections();
 //  startTime = clock();
 //  //--------------------------------------------------------
 //
+//  puts("comecar a brincadeira");
+//  clock_t auxStart = clock();
 //  Solution S_dummy = heu->generateSolution();
-//  Solution S = localSearch(S_dummy);
-//  while (!isStoppingCriteriaReached()) {
-//    int k = 1;
-//    while (k < K_MAX && !isStoppingCriteriaReached()) {
-//      Solution S_1 = pertubation(S, k, NUMBER_OF_LINKS);
-//      Solution S_2 = localSearch(S_1);
+//  printf("total time: %lf\n", ((double) (clock() - auxStart)) / CLOCKS_PER_SEC);
 //
-//      if (S_2.getObjective() > S.getObjective()) {
-//        S = S_2;
-//        k = 1;
-//      } else {
-//        k++;
-//      }
-//    }
+//  fprintf(stdout, "OBJECTIVE %lf with %d scheduled links\n", S_dummy.getObjective(), S_dummy.getNumberOfScheduledLinks());
+//  for (const Link &x : S_dummy.getScheduledLinks()) {
+//    fprintf(stdout, "%d %d\n", x.id, x.ch);
 //  }
-//
-//  printf("%lf\n", S.getObjective());
-//
-//  fprintf(solutionFile, "OBJECTIVE %lf\n", S.getObjective());
-//  for (const Link &x : S.getScheduledLinks()) {
-//    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
-//  }
-//
-//  fclose(solutionFile);
-//  delete heu;
-//  return 0;
 //}
+
+int main(int argc, char *argv[]) {
+  if (argc != 3) {
+    fprintf(stderr, "wrong arguments\n");
+    exit(-1);
+  }
+
+  FILE *solutionFile = fopen(argv[2], "a");
+
+  if (solutionFile == NULL) {
+    fprintf(stderr, "error opening solutionFile file\n");
+    exit(-1);
+  }
+
+  init(argv[1]);
+  const int NUMBER_OF_LINKS = heu->getQuantConnections();
+  startTime = clock();
+  //--------------------------------------------------------
+
+  Solution S_dummy = heu->generateSolution();
+  Solution S = localSearch(S_dummy);
+  while (!isStoppingCriteriaReached()) {
+    int k = 1;
+    while (k < K_MAX && !isStoppingCriteriaReached()) {
+      Solution S_1 = pertubation(S, k, NUMBER_OF_LINKS);
+      Solution S_2 = localSearch(S_1);
+
+      if (S_2.getObjective() > S.getObjective()) {
+        S = S_2;
+        k = 1;
+      } else {
+        k++;
+      }
+    }
+  }
+
+  printf("%lf\n", S.getObjective());
+
+  fprintf(solutionFile, "OBJECTIVE %lf\n", S.getObjective());
+  for (const Link &x : S.getScheduledLinks()) {
+    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
+  }
+
+  fclose(solutionFile);
+  delete heu;
+  return 0;
+}

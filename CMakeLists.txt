@@ -65,7 +65,7 @@ else()
   if (OpenMP_CXX_FOUND)
     add_executable(main
       #Heuristic_main.cpp
-      BRKGA.h
+      #BRKGA.h
       MTRand.h
       Population.h
       HeuristicDecoder.h HeuristicDecoder.cpp VNS.cpp)
