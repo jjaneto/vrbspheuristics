@@ -648,11 +648,6 @@ Solution HeuristicDecoder::generateSolution() {
       }
     }
 
-//    printf("CANAIS:\n");
-//    for (int x : availableChannels) {
-//      printf("%d ", x);
-//    }
-//    puts("");
     for (const int ch : availableChannels) {
       Solution S1(S), S2;
       Link aux(link);
