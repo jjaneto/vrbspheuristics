@@ -34,6 +34,7 @@ extern int channels20MHz[25];
 //extern int channels160MHz[2] = {43, 44};
 
 extern int overlap[45][45];
+extern int father[45];
 extern std::string PATH_TO[46][46];
 extern std::unordered_map<int, std::pair<int, int>> mapChtoCh;
 extern MTRand rng;
@@ -54,6 +55,8 @@ struct Channel {
     short id;
     short bw;
     std::vector<short> links;
+
+    Channel (int ch_) : id(ch_) {}
 };
 
 struct Link {

@@ -57,6 +57,7 @@ int overlap[45][45] = {{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                        {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}};
 
 int nConnections;
+int father[45];
 double dataRates[10][4];
 double distanceMatrix[2048][2048], interferenceMatrix[2048][2048];
 double senders[2048][2], receivers[2048][2];
@@ -140,29 +141,6 @@ inline void mapSplitChannels() {
   mapChtoCh[35] = {20, 21};
   mapChtoCh[36] = {22, 23};
 }
-
-//inline void mapSplitChannels() {
-//  mapChtoCh[44] = {38, 39};
-//  mapChtoCh[38] = {26, 27};
-//  mapChtoCh[39] = {28, 29};
-//  mapChtoCh[26] = {1, 2};
-//  mapChtoCh[27] = {3, 4};
-//  mapChtoCh[28] = {5, 6};
-//  mapChtoCh[29] = {7, 8};
-//  mapChtoCh[45] = {40, 41};
-//  mapChtoCh[40] = {30, 31};
-//  mapChtoCh[41] = {32, 33};
-//  mapChtoCh[30] = {9, 10};
-//  mapChtoCh[31] = {11, 12};
-//  mapChtoCh[32] = {13, 14};
-//  mapChtoCh[33] = {15, 16};
-//  mapChtoCh[42] = {34, 35};
-//  mapChtoCh[34] = {17, 18};
-//  mapChtoCh[35] = {19, 20};
-//  mapChtoCh[43] = {36, 37};
-//  mapChtoCh[36] = {21, 22};
-//  mapChtoCh[37] = {23, 24};
-//}
 
 void readFile() {
   SINR.assign(10, vector<double>(4, 0));

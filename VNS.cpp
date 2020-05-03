@@ -72,7 +72,7 @@ void betaReinsert(Solution &current, int beta = 1) {
 
 vector<Channel> buildMultipleSolution(const Solution &curr, int rootChannel) {
   vector<Link> slinks;
-  vector<Channel> ret(45);
+  vector<Channel> usedChannels;
 
   for (const Link &x : curr.getScheduledLinks()) {
     if (overlap[x.ch][rootChannel]) {
@@ -94,7 +94,7 @@ vector<Channel> buildMultipleSolution(const Solution &curr, int rootChannel) {
 
         for (int k = a; k < j; k++) {
           Link aux(slinks[k]);
-          aux.setChannel(father[slinks[k].ch]);
+          aux.setChannel(father[slinks[k].ch]); //TODO: still have to define father properly
 
           slinks.emplace_back(aux);
         }
@@ -109,11 +109,17 @@ vector<Channel> buildMultipleSolution(const Solution &curr, int rootChannel) {
   }
 
   for (int i = 0; i < slinks.size(); i++) {
-    ret[slinks[i].ch].links.emplace_back(slinks[i].id);
-    ret[slinks[i].ch].interference += slinks[i].interference;
+    usedChannels[slinks[i].ch].links.emplace_back(slinks[i].id);
   }
 
-  return ret;
+  vector<Channel> ret;
+  for (int i = 0; i < usedChannels.size(); i++) {
+    if (!usedChannels[i].links.empty()) {
+      ret.emplace_back(usedChannels[i]);
+    }
+  }
+
+  return usedChannels;
 }
 
 double solve(vector<Channel> &refCh, int chId) {
@@ -145,7 +151,7 @@ void recoverSolutionFromDP(vector<Channel> &sChannel, int chId, bool clean) {
   }
 }
 
-double computeLinkThroughput(int idConnection, double localInterference, double bw) {
+double computeLinkThroughput(int idConnection, double localInterference, int bw) {
   double throughput = 0.0;
 
   double sinr;
@@ -190,7 +196,7 @@ double calcDP(vector<Channel> &chan) {
   return OF;
 }
 
-Solution reconstructSolution(const Solution &S, vector<Channel> &ret, double ansDP) {
+Solution reconstructSolution(vector<Channel> &ret) { //TODO: need to work in this function
   for (int x : arrRoot)
     recoverSolutionFromDP(ret, x, false);
 
@@ -208,7 +214,9 @@ Solution reconstructSolution(const Solution &S, vector<Channel> &ret, double ans
   assert(final_.getNumberOfScheduledLinks() <= heu->getQuantConnections());
   final_.computeObjective(false);
 
-  assert(ansDP == final_.getObjective());
+//  assert(ansDP == final_.getObjective());
+
+  return Solution(); //TODO
 }
 
 vector<Channel> initDP(const Solution &S) {
@@ -231,12 +239,15 @@ void deleteFromChannel(const int k, Channel &channel, const Solution &curr) {
   }
 
   channel.links.pop_back();
-  computeChannelsThroughput({channel});
+
+  vector<Channel> aux{channel};
+  computeChannelsThroughput(aux); //TODO: lembrar de verificar se realmente funcionou
 }
 
 void insertInChannel(const int k, Channel &channel, const Solution &curr) {
   channel.links.push_back(k);
-  computeChannelsThroughput({channel});
+  vector<Channel> aux{channel};
+  computeChannelsThroughput(aux); //TODO: lembrar de verificar se realmente funcionou
 }
 
 void setDP(vector<Channel> &rep) {
@@ -350,10 +361,12 @@ Solution convert(const Solution &aux) {
 Solution localSearch(Solution &current) {
   current = convert(current);
   vector<Channel> chDP = initDP(current);
-  double dpOF = calcDP(chDP);
-
-  Solution localOptima = reconstructSolution(current, chDP, dpOF);
-  return localOptima;
+  return Solution();
+//  double dpOF = calcDP(chDP);
+//
+////  Solution localOptima = reconstructSolution(current, chDP, dpOF);
+//  Solution localOptima = reconstructSolution(chDP);
+//  return localOptima;
 }
 
 Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
@@ -411,43 +424,45 @@ int main(int argc, char *argv[]) {
 
   Solution curr = heu->generateSolution();
   Solution S_global = localSearch(curr);
-  Solution localMax = curr;
-  while (!isStoppingCriteriaReached()) {
-    int k = 1;
-    while (k <= K_MAX && !isStoppingCriteriaReached()) {
-      curr = localMax;
 
-      if (rng.randInt(1)) {
-        //AddDrop
-        betaAddDrop(curr, k * K_MUL);
-      } else {
-        //Reinsert
-        betaReinsert(curr, k * K_MUL);
-      }
 
-      Solution localAux = localSearch(curr);
-
-      if (localAux > localMax) {
-        localMax = curr;
-        k = 1;
-      } else {
-        k++;
-      }
-
-      if (localMax > S_global) {
-        S_global = localMax;
-      }
-    }
-  }
-
-  printf("%lf\n", S_global.getObjective());
-
-  fprintf(solutionFile, "OBJECTIVE %lf\n", S_global.getObjective());
-  for (const Link &x : S_global.getScheduledLinks()) {
-    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
-  }
-
-  fclose(solutionFile);
-  delete heu;
+//  Solution localMax = curr;
+//  while (!isStoppingCriteriaReached()) {
+//    int k = 1;
+//    while (k <= K_MAX && !isStoppingCriteriaReached()) {
+//      curr = localMax;
+//
+//      if (rng.randInt(1)) {
+//        //AddDrop
+//        betaAddDrop(curr, k * K_MUL);
+//      } else {
+//        //Reinsert
+//        betaReinsert(curr, k * K_MUL);
+//      }
+//
+//      Solution localAux = localSearch(curr);
+//
+//      if (localAux > localMax) {
+//        localMax = curr;
+//        k = 1;
+//      } else {
+//        k++;
+//      }
+//
+//      if (localMax > S_global) {
+//        S_global = localMax;
+//      }
+//    }
+//  }
+//
+//  printf("%lf\n", S_global.getObjective());
+//
+//  fprintf(solutionFile, "OBJECTIVE %lf\n", S_global.getObjective());
+//  for (const Link &x : S_global.getScheduledLinks()) {
+//    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
+//  }
+//
+//  fclose(solutionFile);
+//  delete heu;
   return 0;
 }
