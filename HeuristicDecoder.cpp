@@ -403,6 +403,14 @@ bool operator==(const Solution &o1, const Solution &o2) {
   return cond;
 }
 
+bool operator<(const Link &o1, const Link &o2) {
+  return o1.bw < o2.bw;
+}
+
+bool operator>(const Link &o1, const Link &o2) {
+  return operator<(o2, o1);
+}
+
 void Solution::computeInterference() {
   for (Link &u : scheduled_links) {
     u.interference = 0.0;
@@ -481,7 +489,7 @@ void Solution::computeObjective(bool show) {
   objectiveFlag = true;
 }
 
-void Solution::insert(const Link &l) {
+void Solution::insert(const Link &l) { //TODO: verify ZeroLinks
   scheduled_links.emplace_back(l);
 
   objectiveFlag = false;
@@ -820,12 +828,12 @@ void Solution::exchangeLinks(int idOldLink, Link newLink) {
   scheduled_links[idOldLink] = newLink; //TODO: is this what I meant to do?
 }
 
-void Solution::setScheduledLinks(const deque<Link> newLinks) {
-  this->scheduled_links = newLinks;
+void Solution::setScheduledLinks(const deque<Link> &newLinks) {
+  this->scheduled_links = deque<Link>(newLinks.begin(), newLinks.end());
   objectiveFlag = false;
 }
 
-void Solution::addLinks(const deque<Link> &links) {
+void Solution::addLinks(const deque<Link> &links) { //TODO: verify ZeroLinks
   for (const Link &link_ : links) {
     insert(link_);
   }
@@ -861,4 +869,12 @@ void dfs(int u, int pai, string path) {
     dfs(mapChtoCh[u].first, u, path + "L");
     dfs(mapChtoCh[u].second, u, path + "R");
   }
+}
+
+void Solution::setZeroLinks(const vector<int> &zeroLinks) {
+  this->zeroLinks = vector<int>(zeroLinks);
+}
+
+vector<int> Solution::getZeroLinks() {
+  return this->zeroLinks;
 }

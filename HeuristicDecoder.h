@@ -21,6 +21,7 @@
 #include <map>
 #include <cstring>
 #include <cassert>
+#include <numeric>
 
 #include <thread>
 #include <chrono>
@@ -44,6 +45,16 @@ extern double senders[2048][2], receivers[2048][2];
 extern std::vector<std::vector<double>> SINR;
 extern double powerSender, alfa, noise, ttm;
 extern std::map<int, std::vector<int>> chToLinks;
+
+struct Channel {
+    double throughput;
+    double interference;
+    short parent;
+    short childs[2];
+    short id;
+    short bw;
+    std::vector<short> links;
+};
 
 struct Link {
     int _idR, _idS;
@@ -70,6 +81,10 @@ struct Link {
 
     friend bool operator==(const Link &oq, const Link &o2);
 
+    friend bool operator<(const Link &o1, const Link &o2);
+
+    friend bool operator>(const Link &o1, const Link &o2);
+
     void setChannel(int ch);
 
     void printLink() const;
@@ -80,6 +95,8 @@ public:
     double objective;
     std::deque<Link> scheduled_links;
 
+    std::vector<int> zeroLinks;
+
     bool objectiveFlag;
 
     Solution();
@@ -89,6 +106,10 @@ public:
     Solution(double objective, const std::deque<Link> &scheduledLinks);
 
     Solution(double objective);
+
+    void setZeroLinks(const std::vector<int> &zeroLinks);
+
+    std::vector<int> getZeroLinks();
 
     void computeObjective(bool show = false);
 
@@ -114,7 +135,7 @@ public:
 
     void setChannelOfLink(int id, int channel);
 
-    void setScheduledLinks(const std::deque<Link> newLinks);
+    void setScheduledLinks(const std::deque<Link> &newLinks);
 
     void addLinks(const std::deque<Link> &links);
 
