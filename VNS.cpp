@@ -1,10 +1,13 @@
 #include "HeuristicDecoder.h"
 
-const int K_MAX = 50;
+using namespace std;
 
+const int K_MAX = 50;
 HeuristicDecoder *heu;
 double maximumTime;
 clock_t startTime;
+int channels20MHz[25] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                         24};
 
 bool isStoppingCriteriaReached() {
   return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;

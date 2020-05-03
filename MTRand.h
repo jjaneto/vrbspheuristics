@@ -55,6 +55,9 @@
 // It would be nice to CC: wagnerr@umich.edu and Cokus@math.washington.edu
 // when you write.
 
+#pragma clang diagnostic ignored "-Wdeprecated-register"
+#pragma gcc diagnostic ignored "-Wdeprecated-register"
+
 #ifndef MTRAND_H
 #define MTRAND_H
 
