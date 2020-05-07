@@ -2,467 +2,402 @@
 
 using namespace std;
 
-const int K_MAX = 50;
-HeuristicDecoder *heu;
+const int MAX_SPECTRUM = 3;
+const int MAX_CHANNELS = 45;
 double maximumTime;
 clock_t startTime;
-int channels20MHz[25] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
-int arrRoot[] = {24, 41, 42, 43, 44};
-double chanThroughput[45];
-bool inSolution[45];
+int parent[MAX_SPECTRUM][MAX_CHANNELS];
+int child[MAX_SPECTRUM][MAX_CHANNELS][2];
+int chanThroughput[MAX_SPECTRUM][MAX_CHANNELS];
+bool inSolution[MAX_SPECTRUM][MAX_CHANNELS];
 
-bool isStoppingCriteriaReached() {
+bool stop() {
   return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
 }
 
-void addDrop(Solution &current, Link link) {
-  vector<int> usedChannels(current.getScheduledChannels());
-
-  Solution aux(current);
-  bool flag = true;
-
-  for (int ch : usedChannels) {
-    Solution copy(current);
-    Link newLink(ch);
-    copy.insert(newLink);
-
-    if ((copy > aux) || flag) {
-      flag = false;
-      aux = copy;
+bool allChannels20MHz(const Solution &sol) {
+  for (const Spectrum &spectrum : sol.spectrums) {
+    for (const Channel &channel : spectrum.channels) {
+      if (channel.bandwidth != 20) {
+        return false;
+      }
     }
   }
-
-  current = aux;
+  return true;
 }
 
-void betaAddDrop(Solution &current, int beta = 1) {
-  vector<int> zeroLinks = current.getZeroLinks();
-  beta = min(beta, int(zeroLinks.size()));
-  for (int k = 0; k < beta; k++) {
-    int rndIndex = rng.randInt(zeroLinks.size() - 1);
-    int idConnection = zeroLinks[rndIndex];
-
-    Link toInsert(idConnection);
-    addDrop(current, toInsert);
-
-    swap(zeroLinks[rndIndex], zeroLinks.back());
-    zeroLinks.pop_back();
+Solution convert20MHz(Solution sol) {
+  for (Spectrum &spectrum : sol.spectrums) {
+    sort(spectrum.channels.begin(), spectrum.channels.end());
   }
 
-  current.setZeroLinks(zeroLinks);
-}
+  while (!allChannels20MHz(sol)) {
+    for (Spectrum &spectrum : sol.spectrums) {
+      for (int c = 0; c < spectrum.channels.size(); c++) {
+        if (spectrum.channels[c].bandwidth == 20)
+          continue;
 
-void betaReinsert(Solution &current, int beta = 1) {
-  deque<Link> scheduledLinks(current.getScheduledLinks());
-  beta = min(beta, int(scheduledLinks.size()));
+        int newBw = spectrum.channels[c].bandwidth / 2;
+        Channel child1(newBw), child2(newBw);
 
-  for (int i = 0; i < beta; i++) {
-    int rndIndex = rng.randInt(scheduledLinks.size() - 1);
+        vector<Connection> connections = spectrum.channels[c].connections;
 
-    Link aux = scheduledLinks[rndIndex];
-    assert(current.removeLink(aux));
-
-    addDrop(current, Link(aux.ch));
-  }
-
-  current.setScheduledLinks(scheduledLinks);
-
-  //A versao de Mauricio tem um addDrop() ao final de todo Reinsert. Verificar.
-}
-
-vector<Channel> buildMultipleSolution(const Solution &curr, int rootChannel) {
-  vector<Link> slinks;
-  vector<Channel> usedChannels;
-
-  for (const Link &x : curr.getScheduledLinks()) {
-    if (overlap[x.ch][rootChannel]) {
-      slinks.emplace_back(x);
-    }
-  }
-
-  sort(slinks.begin(), slinks.end());
-
-  int idx = 0;
-  while (idx < slinks.size()) {
-    int a = idx;
-    int b = upper_bound(slinks.begin() + a, slinks.end(), slinks[a]) - slinks.begin();
-
-    if (b < slinks.size()) {
-      int i = b;
-      if (father[slinks[a].ch] == father[slinks[i].ch]) {
-        int j = upper_bound(slinks.begin() + i, slinks.end(), slinks[i]) - slinks.begin();
-
-        for (int k = a; k < j; k++) {
-          Link aux(slinks[k]);
-          aux.setChannel(father[slinks[k].ch]); //TODO: still have to define father properly
-
-          slinks.emplace_back(aux);
+        for (Connection &conn : connections) {
+          if (rng.randInt(1)) {
+            child1.connections.emplace_back(conn);
+          } else {
+            child2.connections.emplace_back(conn);
+          }
         }
 
-        idx = j;
-      } else {
-        idx = i;
+        spectrum.channels[c] = child1;
+        spectrum.channels.insert(spectrum.channels.begin() + c, child2); //TODO: it was .end(). Did it right?
       }
-    } else {
-      idx = b;
     }
   }
 
-  for (int i = 0; i < slinks.size(); i++) {
-    usedChannels[slinks[i].ch].links.emplace_back(slinks[i].id);
-  }
-
-  vector<Channel> ret;
-  for (int i = 0; i < usedChannels.size(); i++) {
-    if (!usedChannels[i].links.empty()) {
-      ret.emplace_back(usedChannels[i]);
-    }
-  }
-
-  return usedChannels;
+  return sol;
 }
 
-double solve(vector<Channel> &refCh, int chId) {
-  double ret = refCh[chId].throughput;
-  inSolution[chId] = true;
+void setDP(const Solution &sol) { //TODO
+  memset(chanThroughput, 0, sizeof chanThroughput);
+  memset(inSolution, false, sizeof inSolution);
 
-  if (refCh[chId].childs[0] != -1 && refCh[chId].childs[1] != -1) {
-    double candidate = solve(refCh, refCh[chId].childs[0]) + solve(refCh, refCh[chId].childs[1]);
+  for (int s = 0; s < sol.spectrums.size(); s++) {
+    for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
+      //TODO: verify if at this point, the throughput is already updated
+      chanThroughput[s][c] = sol.spectrums[s].channels[c].throughput;
+    }
+  }
+}
 
-    if (candidate > refCh[chId].throughput) {
-      ret = candidate;
-      inSolution[chId] = false;
+double solve(int i, int j) {
+  inSolution[i][j] = true;
+  double ret = chanThroughput[i][j];
+  if (child[i][j][0] != -1 && child[i][j][1] != -1) {
+    double a1 = solve(i, child[i][j][0]);
+    double a2 = solve(i, child[i][j][1]);
+
+    if (a1 + a2 > ret) {
+      ret = a1 + a2;
+      inSolution[i][j] = false;
     }
   }
 
   return ret;
 }
 
-void recoverSolutionFromDP(vector<Channel> &sChannel, int chId, bool clean) {
-  if (clean)
-    inSolution[chId] = false;
-
-  if (inSolution[chId])
-    clean = true;
-
-  if (sChannel[chId].childs[0] != -1 && sChannel[chId].childs[1] != -1) {
-    recoverSolutionFromDP(sChannel, sChannel[chId].childs[0], clean);
-    recoverSolutionFromDP(sChannel, sChannel[chId].childs[1], clean);
-  }
-}
-
-double computeLinkThroughput(int idConnection, double localInterference, int bw) {
-  double throughput = 0.0;
-
-  double sinr;
-  if (localInterference == 0.0) {
-    sinr = 1e9;
-  } else {
-    sinr = (powerSender / pow(distanceMatrix[idConnection][idConnection], alfa)) / (localInterference + noise);
-  }
-
-  int mxDataRate = (bw == 20) ? 9 : 8;
-  int i = 0;
-
-  while (i < mxDataRate && sinr > SINR[i++][bw]);
-
-  throughput = dataRates[i][bw];
-  return throughput;
-}
-
-void computeChannelsThroughput(vector<Channel> &usedChannels) {
-  for (Channel &ch : usedChannels) {
-    ch.throughput = 0.0;
-
-    for (int i = 0; i < ch.links.size(); i++) {
-      int idConnection = ch.links[i];
-      double localInterference = 0.0;
-
-      for (int j = 0; j < ch.links.size(); j++) {
-        int idOtherConnection = ch.links[j];
-        localInterference += interferenceMatrix[idOtherConnection][idConnection];
+double calcDP(Solution &sol) { //TODO
+  double OF = 0.0;
+  for (int s = 0; s < sol.spectrums.size(); s++) {
+    for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
+      if (parent[s][c] == -1) {
+        OF += solve(s, c);
       }
-
-      ch.throughput += computeLinkThroughput(idConnection, localInterference, whichBw(ch.id));
     }
   }
-}
 
-double calcDP(vector<Channel> &chan) {
-  double OF = 0.0;
-  for (const int x : arrRoot) {
-    OF += solve(chan, x);
-  }
   return OF;
 }
 
-Solution reconstructSolution(vector<Channel> &ret) { //TODO: need to work in this function
-  for (int x : arrRoot)
-    recoverSolutionFromDP(ret, x, false);
+bool reinsert(Solution &sol, Connection conn, ii from, ii to, bool force = false) {
+  if (to == from)
+    return false;
 
-  Solution final_;
+  Solution copy(sol);
+  bool improved = false;
 
-  for (const Channel &chan : ret) {
-    if (inSolution[chan.id]) {
+  Channel oldChan = deleteFromChannel(copy.spectrums[from.first].channels[from.second], conn.id);
+  Channel newChan = insertInChannel(copy.spectrums[to.first].channels[to.second], conn.id);
 
-      for (int j = 0; j < chan.links.size(); j++) {
-        //final_.insert() TODO: inserir link chan.link[j] em final_
+  swap(copy.spectrums[from.first].channels[from.second], oldChan);
+  swap(copy.spectrums[to.first].channels[to.second], newChan);
+
+  if (copy > sol)
+    improved = true;
+
+  if ((copy > sol) || force) {
+    sol = copy;
+  }
+
+  return improved;
+}
+
+void K_AddDrop(Solution &sol, int K) {
+  //K = min(K, conexoes_nao_alocadas); //TODO
+  ii channelFrom = {3, 0};
+  for (int i = 0; i < K; i++) {
+    int idx = rng.randInt(sol.spectrums[3].channels[0].connections.size() - 1);
+    Connection conn = sol.spectrums[3].channels[0].connections[idx];
+
+    int a = rng.randInt(sol.spectrums.size() - 1);
+    int b = rng.randInt(sol.spectrums[a].channels.size() - 1);
+    ii chanelTo = {a, b};
+
+    reinsert(sol, conn, channelFrom, chanelTo, true);
+  }
+}
+
+void K_RemoveAndInserts(Solution &sol, int K) {
+  int k = 0;
+  while (k < K) {
+    int a = rng.randInt(sol.spectrums.size() - 1);
+    int b = rng.randInt(sol.spectrums[a].channels.size() - 1);
+
+    if (sol.spectrums[a].channels[b].connections.empty())
+      continue;
+
+    k++;
+
+    int z = rng.randInt(sol.spectrums[a].channels[b].connections.size() - 1);
+    Connection conn = sol.spectrums[a].channels[b].connections[z];
+
+    ii from = {a, b};
+    reinsert(sol, conn, from, {3, 0}, true);
+  }
+  K_AddDrop(sol, K);
+}
+
+Solution multipleRepresentation(Solution ret) {
+  memset(parent, -1, sizeof parent);
+  memset(child, -1, sizeof child);
+
+  for (int s = 0; s < ret.spectrums.size(); s++) {
+    Spectrum &spectrum = ret.spectrums[s];
+    int curr = 0;
+    while (curr + 1 < spectrum.channels.size()) {
+      if (spectrum.channels[curr].bandwidth == spectrum.channels[curr + 1].bandwidth) {
+        Channel merged = spectrum.channels[curr];
+        merged.bandwidth *= 2;
+
+        for (const Connection &conn : spectrum.channels[curr].connections) {
+          merged.connections.emplace_back(conn);
+        }
+
+        int p = spectrum.channels.size();
+        child[s][p][0] = curr;
+        child[s][p][1] = curr + 1;
+        parent[s][curr] = p;
+        parent[s][curr + 1] = p;
+
+        spectrum.channels.emplace_back(merged);
+        curr += 2;
+      } else {
+        curr += 1;
       }
     }
   }
 
-  assert(final_.getNumberOfScheduledLinks() <= heu->getQuantConnections());
-  final_.computeObjective(false);
-
-//  assert(ansDP == final_.getObjective());
-
-  return Solution(); //TODO
+  computeThroughput(ret);
+  return ret;
 }
 
-vector<Channel> initDP(const Solution &S) {
-  vector<Channel> usedChannels;
-  for (int i = 0; i < 5; i++) {
-    vector<Channel> aux = buildMultipleSolution(S, arrRoot[i]);
-    usedChannels.insert(usedChannels.end(), aux.begin(), aux.end());
+void recoverSolution(int i, int j, bool clean) {
+  if (clean)
+    inSolution[i][j] = false;
+
+  if (inSolution[i][j])
+    clean = true;
+
+  if (child[i][j][0] != -1 && child[i][j][1] != -1) {
+    recoverSolution(i, child[i][j][0], clean);
+    recoverSolution(j, child[i][j][1], clean);
   }
-
-  computeChannelsThroughput(usedChannels);
-  return usedChannels;
 }
 
-void deleteFromChannel(const int k, Channel &channel, const Solution &curr) {
-  for (int i = 0; i < channel.links.size(); i++) {
-    if (channel.links[i] == k) {
-      swap(channel.links[i], channel.links.back());
-      break;
+Solution explicitSolution(const Solution &curr) {
+  Solution ret;
+
+  for (int s = 0; s < curr.spectrums.size(); s++) {
+    for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
+      if (parent[s][c] == -1) {
+        recoverSolution(s, c, false);
+      }
     }
   }
 
-  channel.links.pop_back();
-
-  vector<Channel> aux{channel};
-  computeChannelsThroughput(aux); //TODO: lembrar de verificar se realmente funcionou
-}
-
-void insertInChannel(const int k, Channel &channel, const Solution &curr) {
-  channel.links.push_back(k);
-  vector<Channel> aux{channel};
-  computeChannelsThroughput(aux); //TODO: lembrar de verificar se realmente funcionou
-}
-
-void setDP(vector<Channel> &rep) {
-  memset(chanThroughput, 0, sizeof chanThroughput);
-  memset(inSolution, 0, sizeof inSolution);
-
-  for (int i = 0; i < rep.size(); i++) {
-    chanThroughput[rep[i].id] = rep[i].throughput;
+  for (int s = 0; s < MAX_SPECTRUM; s++) {
+    for (int c = 0; c < MAX_CHANNELS; c++) {
+      if (inSolution[s][c]) {
+        ret.spectrums[s].channels.emplace_back(curr.spectrums[s].channels[c]);
+      }
+    }
   }
+
+  return ret;
 }
 
-//currSol must be a \delta solution, and multiple is the solution returned by buildMultipleSolution()
-void VNS_Reinsert(const Solution &curr) {
-  vector<Channel> multiple;
-  for (int i = 0; i < 5; i++) {
-    vector<Channel> aux = buildMultipleSolution(curr, arrRoot[i]);
-    multiple.insert(multiple.end(), aux.begin(), aux.end());
-  }
-  computeChannelsThroughput(multiple);
-
+Solution newVNS_Reinsert(Solution &multiple, Solution &curr) {
   bool improved = false;
   do {
     improved = false;
-    for (int k = 0; k < heu->getQuantConnections(); k++) {
-      vector<Channel> multipleClean(multiple);
 
-      for (int i = 0; i < multipleClean.size(); i++) {
-        for (int j = 0; j < multipleClean[i].links.size(); j++) {
-          if (multipleClean[i].links[j] == k) {
-            //TODO: remover link desse canal
-            deleteFromChannel(k, multipleClean[i], curr);
-            break;
+    for (int i = 0; i < nConnections; i++) {
+      Solution multipleClean(multiple);
+
+      for (Spectrum &spectrum : multipleClean.spectrums) {
+        for (Channel &channel : spectrum.channels) {
+          for (const Connection &conn : channel.connections) {
+            if (conn.id == i) {
+              channel = deleteFromChannel(channel, conn.id);
+              break;
+            }
           }
         }
       }
 
-      vector<Channel> multipleContaining(multipleClean);
-
-      for (Channel &ch_ : multipleContaining) {
-        //TODO: inserir link 'i' em todos os canais ch_
-        insertInChannel(k, ch_, curr);
-      }
-
-      double bestFO = -1;
-      short bestChannel = -1;
-
-      vector<int> scheduledChannels = curr.getScheduledChannels();
-
-      for (const int aux : scheduledChannels) {
-        setDP(multipleClean);
-
-        int currChan = aux;
-
-        while (currChan != -1) {
-          chanThroughput[currChan] = multipleContaining[currChan].throughput;
-          currChan = father[currChan];
-        }
-
-        double FO = calcDP(multiple);
-        if (FO > bestFO) {
-          bestFO = FO;
-          bestChannel = aux;
+      Solution multipleContaining(multipleClean);
+      for (Spectrum &spectrum : multipleClean.spectrums) {
+        for (Channel &channel : spectrum.channels) {
+          channel = insertInChannel(channel, i);
         }
       }
 
-      if (bestFO > curr.getObjective(false)) { //TODO: curr?
+      double bestOF = -1;
+      ii bestChannel = {-1, -1};
+
+      for (int s = 0; s < curr.spectrums.size(); s++) {
+        for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
+          setDP(multipleClean);
+          int currChan = c;
+
+          while (currChan != -1) {
+            chanThroughput[s][currChan] = multipleContaining.spectrums[s].channels[currChan].throughput;
+            currChan = parent[s][currChan];
+          }
+
+          double OF = calcDP(multiple);
+          if (OF > bestOF) {
+            bestOF = OF;
+            bestChannel = {s, c};
+          }
+        }
+      }
+
+      if (bestOF > multiple.totalThroughput) {
         improved = true;
 
-        for (int i = 0; i < multiple.size(); i++) {
-          for (int j = 0; j < multiple[i].links.size(); j++) {
-            if (multiple[i].links[j] == k) {
-              deleteFromChannel(k, multiple[i], curr);
+        for (int s = 0; s < curr.spectrums.size(); s++) {
+          for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
+            Channel &channel = curr.spectrums[s].channels[c];
+            for (const Connection &conn : channel.connections) {
+              if (conn.id == i) {
+                channel = deleteFromChannel(channel, conn.id);
+                break;
+              }
             }
           }
         }
 
-        while (bestChannel != -1) {
-          insertInChannel(k, multiple[bestChannel], curr);
-          bestChannel = father[bestChannel];
+        int newSpec = bestChannel.first;
+        int newChan = bestChannel.second;
+
+        while (newChan != -1) {
+          multiple.spectrums[newSpec].channels[newChan] = insertInChannel(multiple.spectrums[newSpec].channels[newChan],
+                                                                          i);
+          newChan = parent[newSpec][newChan];
         }
+        computeThroughput(multiple);
       }
+
     }
   } while (improved);
-
-  reconstructSolution(multiple);
+  return explicitSolution(multiple);
 }
 
-bool allChannels20MHz(const Solution &check) {
-  for (const int &x : check.getScheduledChannels()) {
-    if (whichBw(x) > 20)
-      return false;
-  }
+Solution VNS(Solution initsol) {
+  Solution delta = convert20MHz(initsol);
+  Solution rep = multipleRepresentation(delta);
 
-  return true;
-}
+  setDP(rep);
+  calcDP(rep);
 
-Solution convert(const Solution &aux) {
-  Solution ret(aux);
+  Solution explicitSol = explicitSolution(rep);
+  Solution star = explicitSol;
+  Solution localMax = delta;
 
-  while (!allChannels20MHz(ret)) {
-    for (Link &x : ret.getScheduledLinks()) {
-      if (whichBw(x.getChannel()) > 20) {
-        split(ret, ret, x.getChannel(), true);
-        break;
+  int K_MUL = max(1, nConnections / 100);
+  int K_MAX = 50;
+  while (!stop()) {
+    int k = 1;
+    while (k <= K_MAX && !stop()) {
+      delta = localMax;
+      if (rng.randInt(1)) { //AddDrop
+        K_AddDrop(delta, k * K_MUL);
+      } else { //Reinsert
+        K_RemoveAndInserts(delta, k * K_MUL);
+      }
+      Solution multiple = multipleRepresentation(delta);
+      setDP(multiple);
+      calcDP(multiple);
+
+      Solution aux = newVNS_Reinsert(multiple, delta);
+      delta = convert20MHz(aux);
+
+      if (aux > localMax) {
+        k = 1;
+        localMax = aux;
+      } else {
+        k++;
+      }
+
+      if (localMax > star) {
+        star = aux;
       }
     }
   }
-  return ret;
-}
 
-Solution localSearch(Solution &current) {
-  current = convert(current);
-  vector<Channel> chDP = initDP(current);
-  return Solution();
-//  double dpOF = calcDP(chDP);
-//
-////  Solution localOptima = reconstructSolution(current, chDP, dpOF);
-//  Solution localOptima = reconstructSolution(chDP);
-//  return localOptima;
-}
-
-Solution pertubation(Solution S, int k, const int NUMBER_OF_LINKS) {
-  double threeshold = rng.rand();
-  if (threeshold >= .5 && (S.getNumberOfScheduledLinks() < heu->getQuantConnections())) {
-    betaAddDrop(S, lround(NUMBER_OF_LINKS * k * 0.01));
-  } else {
-    betaReinsert(S, lround(NUMBER_OF_LINKS * k * 0.01));
-  }
-  return S;
+  return star;  //todo
 }
 
 void init(const string &openingFile = "", double timeLimit = 10) {
-#ifdef DEBUG_CLION
-  puts("WITH DEBUG");
+#ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
+  puts("============== WITH DEBUG ==============");
   freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
 #else
   if (!openingFile.empty()) {
     fprintf(stderr, "trying to open input file %s\n", openingFile.c_str());
     freopen(openingFile.c_str(), "r", stdin);
-
-    if (stdin == NULL) {
-      fprintf(stderr, "error opening input file\n");
-      exit(-1);
-    }
   }
 #endif
 
-  heu = new HeuristicDecoder();
+  if (stdin == NULL) {
+    fprintf(stderr, "error opening input file (stdin)\n");
+    exit(13);
+  }
+
+  loadData();
   maximumTime = timeLimit;
 
   fprintf(stdout, "will execute for %lf seconds\n", maximumTime);
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
-    fprintf(stderr, "wrong arguments\n");
-    exit(-1);
+  if (argc != 4) {
+    fprintf(stderr, "wrong arguments. Must be: stdin, solutionFile, objectiveFile\n");
+    exit(13);
   }
 
   FILE *solutionFile = fopen(argv[2], "a");
-
   if (solutionFile == NULL) {
     fprintf(stderr, "error opening solutionFile file\n");
-    exit(-1);
+    exit(13);
+  }
+
+  FILE *objectivesFile = fopen(argv[3], "a");
+  if (objectivesFile == NULL) {
+    fprintf(stderr, "error opening objectivesFile file\n");
+    exit(13);
   }
 
   init(argv[1], 10);
-  const int NUMBER_OF_LINKS = heu->getQuantConnections();
-  startTime = clock();
 
-  //--------------------------------------------------------
+  Solution aux = createSolution();
+  fprintf(objectivesFile, "%lf\n", aux.totalThroughput);
+  printf("%lf\n", aux.totalThroughput);
+  aux.printSolution(solutionFile);
 
-  int K_MUL = max(1, int(NUMBER_OF_LINKS / 100));
-
-  Solution curr = heu->generateSolution();
-  Solution S_global = localSearch(curr);
-
-
-//  Solution localMax = curr;
-//  while (!isStoppingCriteriaReached()) {
-//    int k = 1;
-//    while (k <= K_MAX && !isStoppingCriteriaReached()) {
-//      curr = localMax;
-//
-//      if (rng.randInt(1)) {
-//        //AddDrop
-//        betaAddDrop(curr, k * K_MUL);
-//      } else {
-//        //Reinsert
-//        betaReinsert(curr, k * K_MUL);
-//      }
-//
-//      Solution localAux = localSearch(curr);
-//
-//      if (localAux > localMax) {
-//        localMax = curr;
-//        k = 1;
-//      } else {
-//        k++;
-//      }
-//
-//      if (localMax > S_global) {
-//        S_global = localMax;
-//      }
-//    }
-//  }
-//
-//  printf("%lf\n", S_global.getObjective());
-//
-//  fprintf(solutionFile, "OBJECTIVE %lf\n", S_global.getObjective());
-//  for (const Link &x : S_global.getScheduledLinks()) {
-//    fprintf(solutionFile, "%d %d\n", x.id, x.ch);
-//  }
-//
-//  fclose(solutionFile);
-//  delete heu;
+  fclose(solutionFile);
+  fclose(objectivesFile);
   return 0;
 }

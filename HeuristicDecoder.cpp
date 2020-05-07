@@ -10,63 +10,16 @@ const int X_c = 0;
 const int Y_c = 1;
 const double EPS = 1e-9;
 
-int overlap[45][45] = {{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                       {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0},
-                       {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0},
-                       {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1}};
-
-int nConnections;
-int father[45];
+int nConnections, nSpectrums;
 double dataRates[10][4];
-double distanceMatrix[2048][2048], interferenceMatrix[2048][2048];
-double senders[2048][2], receivers[2048][2];
+double distanceMatrix[MAX_CONN][MAX_CONN], interferenceMatrix[MAX_CONN][MAX_CONN];
+double senders[MAX_CONN][2], receivers[MAX_CONN][2];
 std::vector<std::vector<double>> SINR;
 double powerSender, alfa, noise, ttm;
-std::map<int, std::vector<int>> chToLinks;
+std::vector<Spectrum> initConfiguration;
+std::random_device rd;
+auto whatever = std::default_random_engine{rd()};
 MTRand rng;
-std::string PATH_TO[46][46];
-std::unordered_map<int, std::pair<int, int>> mapChtoCh;
 
 inline double distance(double X_si, double Y_si, double X_ri, double Y_ri) {
   return hypot((X_si - X_ri), (Y_si - Y_ri));
@@ -87,8 +40,12 @@ void distanceAndInterference() {
 
       distanceMatrix[i][j] = dist;
 
-      double value = (dist != 0.0) ? powerSender / pow(dist, alfa) : 1e9;
-      interferenceMatrix[i][j] = value;
+      if (i == j) {
+        interferenceMatrix[i][j] = 0.0;
+      } else {
+        double value = (dist != 0.0) ? powerSender / pow(dist, alfa) : 1e9;
+        interferenceMatrix[i][j] = value;
+      }
     }
   }
 }
@@ -119,35 +76,35 @@ void convertTableToMW(const vector<vector<double> > &_SINR, vector<vector<double
   }
 }
 
-inline void mapSplitChannels() {
-  mapChtoCh[43] = {37, 38};
-  mapChtoCh[37] = {25, 26};
-  mapChtoCh[38] = {27, 28};
-  mapChtoCh[25] = {0, 1};
-  mapChtoCh[26] = {2, 3};
-  mapChtoCh[27] = {4, 5};
-  mapChtoCh[28] = {6, 7};
-  mapChtoCh[44] = {39, 40};
-  mapChtoCh[39] = {29, 30};
-  mapChtoCh[40] = {31, 32};
-  mapChtoCh[29] = {8, 9};
-  mapChtoCh[30] = {10, 11};
-  mapChtoCh[31] = {12, 13};
-  mapChtoCh[32] = {14, 15};
-  mapChtoCh[41] = {33, 34};
-  mapChtoCh[33] = {16, 17};
-  mapChtoCh[34] = {18, 19};
-  mapChtoCh[42] = {35, 36};
-  mapChtoCh[35] = {20, 21};
-  mapChtoCh[36] = {22, 23};
+void initSpectrums() {
+  for (Spectrum &sp : initConfiguration) {
+    while (sp.maxFrequency - sp.usedFrequency > 0) {
+      int bw = 160;
+      while (bw > (sp.maxFrequency - sp.usedFrequency) && bw > 20) {
+        bw /= 2;
+      }
+
+      if (bw <= (sp.maxFrequency - sp.usedFrequency)) {
+        sp.usedFrequency += bw;
+        sp.channels.emplace_back(0.0, 0.0, bw, vector<Connection>());
+      }
+    }
+
+    assert(sp.maxFrequency - sp.usedFrequency >= 0);
+  }
 }
 
-void readFile() {
+void loadData() {
   SINR.assign(10, vector<double>(4, 0));
-  double aux1;
-  scanf("%lf", &aux1);
-  scanf("%d %lf %lf %lf %lf %lf %lf %lf %lf", &nConnections, &ttm, &alfa, &noise, &powerSender, &aux1, &aux1,
-        &aux1, &aux1);
+  int aux1;
+  scanf("%d", &aux1);
+  scanf("%d %lf %lf %lf %lf %d", &nConnections, &ttm, &alfa, &noise, &powerSender, &nSpectrums);
+
+  for (int i = 0; i < nSpectrums; i++) {
+    int s;
+    scanf("%d", &s);
+    initConfiguration.emplace_back(s, 0, vector<Channel>());
+  }
 
   if (noise != 0) {
     noise = convertDBMToMW(noise);
@@ -184,18 +141,8 @@ void readFile() {
   memset(interferenceMatrix, 0, sizeof interferenceMatrix);
   memset(distanceMatrix, 0, sizeof distanceMatrix);
 
+  initSpectrums();
   distanceAndInterference();
-}
-
-int whichBw(int ch) {
-  if (ch >= 25 && ch <= 36)
-    return 40;
-  else if (ch >= 37 && ch <= 42)
-    return 80;
-  else if (ch == 43 || ch == 44)
-    return 160;
-
-  return 20;
 }
 
 int bwIdx(int bw) {
@@ -213,646 +160,270 @@ bool double_equals(double a, double b, double epsilon = 0.000000001) {
   return std::abs(a - b) < epsilon;
 }
 
-Link::Link() {
-  origChannel = -1;
-  _idR = _idS = id = -1;
-  ch = bw = -1;
-  interference = SINR = 0.0;
-  MCS = -1;
-  distanceSenderReceiver = -1.0;
-}
-
-Link::Link(int id) : _idR(id), _idS(id), id(id) {
-  ch = bw = -1;
-  interference = SINR = 0.0;
-  MCS = -1;
-  distanceSenderReceiver = distanceMatrix[_idS][_idR];
-}
-
-Link::Link(const Link &x) {
-  origChannel = x.origChannel;
-  id = x.id;
-  ch = x.ch;
-  bw = x.bw;
-  _idS = x._idS;
-  _idR = x._idR;
-  interference = x.interference;
-  MCS = x.MCS;
-  SINR = x.SINR;
-  distanceSenderReceiver = x.distanceSenderReceiver;
-}
-
-void Link::operator=(const Link &x) {
-  origChannel = x.origChannel;
-  id = x.id;
-  ch = x.ch;
-  bw = x.bw;
-  interference = x.interference;
-  MCS = x.MCS;
-  _idR = x._idR;
-  _idS = x._idS;
-  distanceSenderReceiver = x.distanceSenderReceiver;
-  SINR = x.SINR;
-}
-
-int Link::getId() const {
-  return this->id;
-}
-
-int Link::getChannel() const {
-  return this->ch;
-}
-
-bool operator==(const Link &o1, const Link &o2) {
-  if (o1._idR != o2._idR) {
-    return false;
-  }
-
-  if (o1.id != o2.id) {
-    return false;
-  }
-
-  if (o1.ch != o2.ch) {
-    return false;
-  }
-
-  if (o1.bw != o2.bw) {
-    return false;
-  }
-
-  if (o1.interference != o2.interference) {
-    return false;
-  }
-
-  if (o1.SINR != o2.SINR) {
-    return false;
-  }
-
-  if (o1.MCS != o2.MCS) {
-    return false;
-  }
-
-  if (o1.distanceSenderReceiver != o2.distanceSenderReceiver) {
-    return false;
-  }
-
-  if (o1.origChannel != o2.origChannel) {
-    return false;
-  }
-
-  return true;
-}
-
-void Link::setChannel(int ch) {
-  if (origChannel == -1) {
-    this->origChannel = ch;
-  }
-  this->ch = ch;
-  this->bw = whichBw(ch);
-}
-
-void Link::printLink() const {
-  printf("============= COMPARE =============\n");
-  printf("link %d idS %d idR %d distance %.5lf ch %d, bw %d, interference %.10lf, SINR %.10lf, MCS %d\n", id, _idR,
-         _idS, distanceSenderReceiver, ch, bw, interference, SINR, MCS);
-  printf("=============== END ===============\n");
-}
-
-Solution::Solution(const Solution &o1) {
-  objective = o1.objective;
-  objectiveFlag = o1.objectiveFlag;
-  for (int i = 0; i < o1.scheduled_links.size(); i++) {
-    scheduled_links.push_back(o1.scheduled_links[i]);
-  }
-}
-
-Solution::Solution() {
-  objective = 0.0;
-  objectiveFlag = true;
-}
-
-//Solution &Solution::operator=(const Solution &o1) {
-//  this->objective = o1.objective;
-//  this->scheduled_links = o1.scheduled_links;
-//  return *this;
-//}
-
-bool operator<(const Solution &o1, const Solution &o2) {
-  assert(o1.objectiveFlag && o2.objectiveFlag);
-  return o1.objective < o2.objective;
-}
-
 bool operator>(const Solution &o1, const Solution &o2) {
   return operator<(o2, o1);
 }
 
-bool operator>=(const Solution &o1, const Solution &o2) {
-  return !operator<(o1, o2);
+bool operator<(const Solution &o1, const Solution &o2) {
+  assert(o1.throughputFlag && o2.throughputFlag);
+  return o1.totalThroughput < o2.totalThroughput;
 }
 
-bool operator<=(const Solution &o1, const Solution &o2) {
-  return !operator>(o1, o2);
+double computeConnectionThroughput(Connection &conn, int bandwidth, bool force = false) {
+  int mcs = -1;
+  int maxDataRate = bandwidth == 20 ? 8 : 9;
+
+  if (double_equals(conn.interference, 0.0)) {
+    mcs = maxDataRate;
+    conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
+  } else {
+    double conn_SINR = (powerSender / pow(distanceMatrix[conn.id][conn.id], alfa)) / (conn.interference + noise);
+    conn.SINR = conn_SINR;
+
+    while (mcs + 1 <= maxDataRate && conn_SINR > SINR[mcs + 1][bwIdx(bandwidth)])
+      mcs++;
+
+
+    conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
+  }
+
+  return conn.throughput;
 }
 
-bool operator==(const Solution &o1, const Solution &o2) {
+Channel insertInChannel(const Channel &channel, int idConn) {
+  Channel newChannel = channel;
+  Connection conn(idConn, 0.0, 0.0);
 
-  if (o1.objective != o2.objective)
-    return false;
+  for (Connection &connection : newChannel.connections) {
+    connection.interference += interferenceMatrix[conn.id][connection.id];
+    conn.interference += interferenceMatrix[connection.id][conn.id];
+  }
 
-  if (o1.scheduled_links.size() != o2.scheduled_links.size())
-    return false;
+  newChannel.connections.emplace_back(conn);
+  newChannel.throughput = 0.0;
+  for (Connection &connection : newChannel.connections) {
+    computeConnectionThroughput(connection, newChannel.bandwidth);
+    newChannel.throughput += connection.throughput;
+  }
 
-  bool cond = true;
+  return newChannel;
+}
 
-  const deque<Link> arr1 = o1.getScheduledLinks();
-  const deque<Link> arr2 = o2.getScheduledLinks();
+Channel deleteFromChannel(const Channel &channel, int idConn) {
+  Channel newChannel(channel.bandwidth);
 
-  for (int i = 0; i < int(arr1.size()) && cond; i++) {
-    bool go = false;
-    for (int j = 0; j < int(arr2.size()); j++) {
-      if (arr1[i] == arr2[j]) {
-        go = true;
+  for (const Connection &conn : channel.connections) {
+    if (conn.id != idConn) {
+      newChannel.connections.emplace_back(conn);
+    }
+  }
+
+  newChannel.throughput = 0.0;
+  for (Connection &conn : newChannel.connections) {
+    conn.interference -= interferenceMatrix[idConn][conn.id];
+    computeConnectionThroughput(conn, newChannel.bandwidth);
+    newChannel.throughput += conn.throughput;
+  }
+
+  return newChannel;
+}
+
+
+double computeThroughput(Solution &curr, bool force) {
+  double OF = 0.0;
+
+  for (int s = 0; s < curr.spectrums.size(); s++) {
+    for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
+      double chThroughput = 0.0;
+      for (Connection &conn : curr.spectrums[s].channels[c].connections) {
+        conn.interference = 0.0;
+        for (Connection &otherConn : curr.spectrums[s].channels[c].connections) {
+          conn.interference += interferenceMatrix[otherConn.id][conn.id];
+        }
+        chThroughput += computeConnectionThroughput(conn, curr.spectrums[s].channels[c].bandwidth, force);
+      }
+      curr.spectrums[s].channels[c].throughput = chThroughput;
+      OF += chThroughput;
+    }
+  }
+
+  curr.totalThroughput = OF;
+  curr.throughputFlag = true;
+  return OF;
+}
+
+void insertInSpectrum(Solution &sol, vector<Channel> &channels, int specId) {
+  sol.throughputFlag = false;
+  for (const Channel &ch : channels) {
+    sol.spectrums[specId].channels.emplace_back(ch);
+  }
+
+  computeThroughput(sol);
+}
+
+ii insert(Solution &curr, int conn) {
+  ii best = {-1, -1};
+
+  Solution candidate, aux(curr);
+  for (int s = 0; s < aux.spectrums.size(); s++) {
+    Spectrum &spectrum = aux.spectrums[s];
+    for (int c = 0; c < spectrum.channels.size(); c++) {
+      aux.throughputFlag = false;
+      Channel copyChannel = insertInChannel(spectrum.channels[c], conn);
+
+      swap(spectrum.channels[c], copyChannel);
+      computeThroughput(aux);
+
+      if (aux > candidate) {
+        best = {s, c};
+        candidate = aux;
+      }
+
+      aux.totalThroughput = curr.totalThroughput;
+      aux.throughputFlag = curr.throughputFlag;
+      swap(spectrum.channels[c], copyChannel);
+    }
+  }
+
+  curr = candidate;
+  return best;
+}
+
+Solution split(Solution newSol, ii where) {
+  Channel toSplit = newSol.spectrums[where.first].channels[where.second];
+  Channel child1(toSplit.bandwidth / 2), child2(toSplit.bandwidth / 2);
+
+  swap(newSol.spectrums[where.first].channels[where.second], newSol.spectrums[where.first].channels.back());
+  newSol.spectrums[where.first].channels.pop_back();
+
+  vector<Connection> scheduled_conn(toSplit.connections);
+
+  if (scheduled_conn.size() == 1) {
+    if (rng.randInt(1)) {
+      child1.connections.push_back(scheduled_conn[0]);
+    } else {
+      child2.connections.push_back(scheduled_conn[0]);
+    }
+  } else if (scheduled_conn.size() == 2) {
+    if (rng.randInt(1)) {
+      child1.connections.push_back(scheduled_conn[0]);
+      child2.connections.push_back(scheduled_conn[1]);
+    } else {
+      child1.connections.push_back(scheduled_conn[1]);
+      child2.connections.push_back(scheduled_conn[0]);
+    }
+  } else {//Three or more connections
+    int a = -1, b = -1;
+    double a_in = 0.0, b_in = 0.0;
+    for (int i = 0; i < scheduled_conn.size(); i++) {
+      if (scheduled_conn[i].interference >= a_in) {
+        a = i;
+        a_in = scheduled_conn[i].interference;
       }
     }
 
-    cond &= go;
-  }
-
-  return cond;
-}
-
-bool operator<(const Link &o1, const Link &o2) {
-  return o1.bw < o2.bw;
-}
-
-bool operator>(const Link &o1, const Link &o2) {
-  return operator<(o2, o1);
-}
-
-void Solution::computeInterference() {
-  for (Link &u : scheduled_links) {
-    u.interference = 0.0;
-    u.SINR = 0.0;
-    for (Link &v : scheduled_links) {
-
-      if (u == v) {
+    for (int i = 0; i < scheduled_conn.size(); i++) {
+      if (i == a)
         continue;
-      }
 
-//      assert(u.ch - 1 >= 0 && v.ch -1 >= 0);
-      if (overlap[u.ch][v.ch]) {
-        u.interference += interferenceMatrix[v._idS][u._idR];
+      if (scheduled_conn[i].interference >= b_in) {
+        b = i;
+        b_in = scheduled_conn[i].interference;
       }
     }
 
-    if (double_equals(u.interference, 0.0)) {
-      u.SINR = 1e9;
+    assert(a >= 0 && b >= 0 && a != b);
+
+    if (rng.randInt(1)) {
+      child1.connections.emplace_back(scheduled_conn[a]);
+      child2.connections.emplace_back(scheduled_conn[b]);
     } else {
-      u.SINR = (powerSender / pow(distanceMatrix[u._idS][u._idR], alfa)) / (u.interference + noise);
+      child1.connections.emplace_back(scheduled_conn[b]);
+      child2.connections.emplace_back(scheduled_conn[a]);
     }
-  }
-}
 
-void Solution::computeObjective(bool show) {
-  computeInterference();
-  objective = 0.0;
-  for (Link &x : scheduled_links) {
-    int mxDataRate = (x.bw == 20) ? 9 : 10;
-    bool go = false;
-
-    for (int _mcs = 0; _mcs < mxDataRate; _mcs++) {
-      if (show) {
-        printf("will compare %.3lf and %.3lf (_mcs %d, bw %d, idx bw %d)\n", SINR[_mcs][bwIdx(x.bw)], x.SINR, _mcs,
-               x.bw, bwIdx(x.bw));
-      }
-      if (SINR[_mcs][bwIdx(x.bw)] > x.SINR) {
-        if (show) {
-          printf("     uhu!\n");
-        }
-        x.MCS = _mcs - 1;
-        go = true;
-
-        if (x.MCS == -1) {
-          x.MCS = 0;
-        }
-
-        break;
+    for (int i = 2; i < scheduled_conn.size(); i++) {
+      if (rng.randInt(1)) {
+        child1.connections.emplace_back(scheduled_conn[i]);
       } else {
-        if (show) {
-          printf("     ouch!\n");
-        }
-      }
-    }
-
-    if (!go) {
-      if (show) {
-        printf("enter here link %d mxDataRate %d\n", x.id, mxDataRate);
-      }
-      x.MCS = mxDataRate - 1;
-    } else {
-      if (show) {
-        printf("NOT enter here link %d mxDataRate %d\n", x.id, mxDataRate);
+        child2.connections.emplace_back(scheduled_conn[i]);
       }
     }
   }
 
-  for (Link &x : scheduled_links) {
-    if (show) {
-      printf("===> link %d interference %.10lf SINR %.10lf MCS %d bw %d GIVES %.3lf\n", x.id, x.interference,
-             x.SINR, x.MCS, x.bw, dataRates[x.MCS][bwIdx(x.bw)]);
-    }
-    objective += dataRates[x.MCS][bwIdx(x.bw)];
-  }
-
-  objectiveFlag = true;
+  vector<Channel> aux = {child1, child2};
+  insertInSpectrum(newSol, aux, where.first);
+  return newSol;
 }
 
-void Solution::insert(const Link &l) { //TODO: verify ZeroLinks
-  scheduled_links.emplace_back(l);
+Solution createSolution() {
+  Solution ret(initConfiguration, 0.0, true);
 
-  objectiveFlag = false;
-  //TODO: Do I really need this?
-//  computeInterference();
-
-  objective = 0.0;
-//  computeObjective();
-}
-
-void Solution::clearChannel(int ch) {
-//  set<int> MARK;
-//  for (Link &l : scheduled_links) {
-//    if (l.ch == ch) {
-//      MARK.insert(l.id);
-//    }
-//  }
-
-  auto it = scheduled_links.begin();
-  while (it != scheduled_links.end()) {
-//    if (MARK.count(it->id)) {
-    if (it->ch == ch) {
-      it = scheduled_links.erase(it);
-    } else {
-      it++;
-    }
-  }
-}
-
-double Solution::getObjective(bool force) const {
-  if (!force)
-    assert(this->objectiveFlag);
-
-  return objective;
-}
-
-deque<Link> Solution::getScheduledLinks() const {
-  return scheduled_links;
-}
-
-deque<Link> Solution::getLinksInChannel(int ch) const {
-  deque<Link> ret;
-  for (const Link &l : scheduled_links) {
-    if (l.ch == ch) {
-      ret.emplace_back(l);
-    }
-  }
-  return ret;
-}
-
-HeuristicDecoder::HeuristicDecoder() {
-  readFile();
-
-  chToLinks[24] = vector<int>();
-  chToLinks[41] = vector<int>();
-  chToLinks[42] = vector<int>();
-  chToLinks[43] = vector<int>();
-  chToLinks[44] = vector<int>();
-  mapSplitChannels();
-  dfs(43);
-  dfs(44);
-  dfs(41);
-  dfs(42);
-  //dfs(24); //TODO: need this?
-}
-
-void Solution::setChannelOfLink(int id, int channel) {
-  for (Link &x : scheduled_links) {
-    if (x.id == id) {
-      x.setChannel(channel);
-    }
-  }
-  objectiveFlag = false;
-}
-
-void split(Solution &dest, Solution &src, int ch, bool ok) {
-  int ch1 = mapChtoCh[ch].first, ch2 = mapChtoCh[ch].second;
-  src.computeObjective();
-  deque<Link> links = src.getLinksInChannel(ch);
-
-  if (links.size() < 2) {
-    if (ok && !links.empty()) {
-      src.setChannelOfLink(links[0].id, ch1);
-      src.computeObjective();
-      dest = src;
-    }
-    return;
-  }
-
-//  //TODO: Finish the code below. Get the pair of links with maximum mutual interference
-//  deque<Link> scheduledLinks = src.getScheduledLinks();
-//
-//  double mxInter = -1.0;
-//  int index1 = -1, index2 = -1;
-//  for (int i = 0; i < int(scheduledLinks.size()); i++) {
-//    for (int j = i + 1; j < int(scheduledLinks.size()); j++) {
-//      if (interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id] > mxInter) {
-//        mxInter = interferenceMatrix[scheduledLinks[j].id][scheduledLinks[i].id];
-//        index1 = i;
-//        index2 = j;
-//      }
-//    }
-//  }
-//
-//  Link largest1(scheduledLinks[index1]);
-//  Link largest2(scheduledLinks[index2]);
-//
-//  largest1.setChannel(ch1);
-//  largest2.setChannel(ch2);
-//
-//  Solution newly(src);
-//
-//  newly.clearChannel(ch);
-//
-//  newly.insert(largest1);
-//  newly.insert(largest2);
-//
-//  newly.computeObjective();
-
-  Link largest1;
-  for (const Link &l : links) {
-    if (l.interference > largest1.interference) {
-      largest1 = l;
-    }
-  }
-
-  Link largest2;
-  for (const Link &l : links) {
-    if (!(l == largest1) && (l.interference > largest2.interference)) {
-      largest2 = l;
-    }
-  }
-
-  auto it = links.begin();
-  while (it != links.end()) {
-    if ((*it == largest1) || (*it == largest2)) {
-      it = links.erase(it);
-    } else {
-      it++;
-    }
-  }
-
-  Solution newly(src);
-
-  newly.clearChannel(ch);
-
-  largest1.setChannel(ch1);
-  largest2.setChannel(ch2);
-  newly.insert(largest1);
-  newly.insert(largest2);
-
-  newly.computeObjective();
-
-  while (!links.empty()) {
-    int rndIndex = rng.randInt(links.size() - 1);
-    Link link = links[rndIndex];
-
-    Link dummy1(link), dummy2(link);
-    dummy1.setChannel(ch1), dummy2.setChannel(ch2);
-
-    Solution copy1(newly), copy2(newly);
-
-    copy1.insert(dummy1);
-    copy2.insert(dummy2);
-
-    copy1.computeObjective();
-    copy2.computeObjective();
-
-    newly = (copy1 > copy2) ? copy1 : copy2;
-
-    swap(links[rndIndex], links.back());
-    links.pop_back();
-  }
-
-  dest = newly;
-}
-
-inline void decideBest(Solution &f, const Solution &u, const Solution &v) {
-  assert(u.objectiveFlag && v.objectiveFlag);
-//  printf("f eh %lf comparando %lf com %lf\n", f.getObjective(), u.getObjective(), v.getObjective());
-  if (u > f || v > f) {
-    if (v > u) {
-//      puts("alguma vez?");
-    }
-    f = (u > v) ? u : v;
-  }
-}
-
-Solution HeuristicDecoder::generateSolution() {
-  deque<int> links;
+  vector<int> links;
   for (int i = 0; i < nConnections; i++)
     links.emplace_back(i);
 
-  Solution S;
-  set<int> rootChannels;
-  rootChannels.insert(24);
-  rootChannels.insert(41);
-  rootChannels.insert(42);
-  rootChannels.insert(43);
-  rootChannels.insert(44);
-  while (!links.empty()) {
-    int idx = rng.randInt(links.size() - 1);
-    int link = links[idx];
+  shuffle(links.begin(), links.end(), whatever);
 
-    //-------------
-    Solution Scopy(S);
-    vector<int> availableChannels(Scopy.getScheduledChannels());
-    if (availableChannels.empty()) {
-//      puts("asdas");
-      availableChannels = {24, 42, 41, 43, 44};
-    } else {
-      for (const int ch : rootChannels) {
-        availableChannels.push_back(ch);
-      }
+  Solution retCopy(ret);
+  for (int conn : links) {
+    Solution copy1(retCopy);
+    pair<int, int> where = insert(copy1, conn);
+    Solution copy2 = split(copy1, where);
+
+//    printf("comparing %lf with %lf\n", copy1.totalThroughput, copy2.totalThroughput);
+    if (copy2 > copy1) {
+      copy1 = copy2;
     }
 
-    for (const int ch : availableChannels) {
-      Solution S1(S), S2;
-      Link aux(link);
-      aux.setChannel(ch);
-      S1.insert(aux);
-      //
-      if (whichBw(ch) > 20) {
-        split(S2, S1, ch);
-      }
-      //
-      Scopy.computeObjective();
-      S1.computeObjective();
-      S2.computeObjective();
-      decideBest(Scopy, S1, S2);
-      //
-    }
-
-    if (Scopy > S) {
-      S = Scopy;
-      if (!rootChannels.empty()) {
-        for (const int ch : S.getScheduledChannels()) {
-          rootChannels.erase(ch);
-        }
-      }
-    }
-
-    //-------------
-    swap(links[idx], links.back());
-    links.pop_back();
-  }
-
-  return S;
-}
-
-bool Solution::removeLink(Link link) {
-  auto it = scheduled_links.begin();
-  while (it != scheduled_links.end()) {
-    if (*it == link) {
-      scheduled_links.erase(it);
-      return true;
-    } else {
-      it++;
+    if (copy1 > retCopy) {
+      retCopy = copy1;
     }
   }
 
-  return false;
-}
-
-double HeuristicDecoder::decode(std::vector<double> &chromosome) const {
-  vector<pair<double, int> > auxVector;
-
-  for (int i = 0; i < chromosome.size(); i++) {
-    auxVector.push_back({chromosome[i], i});
-  }
-
-  sort(auxVector.rbegin(), auxVector.rend()); //ordenando em ordem nao crescente.
-
-  vector<int> linksSequence;
-  for (int i = 0; i < auxVector.size(); i++) {
-    linksSequence.push_back(auxVector[i].second);
-  }
-
-  Solution S;
-  for (int idx = 0; idx < linksSequence.size(); idx += 1) {
-    int idLink = linksSequence[idx];
-//    printf("tentando inserir link %d\n", idLink);
-
-    Solution Scopy(S);
-    for (auto &el : chToLinks) { //FIXME: Change chToLinks to Solution::getScheduledLinks.
-//      printf("    -> tentando canal %d\n", el.first);
-      Solution S1(S), S2;
-
-//      printf("         ===> S1 tem %d conexoes\n", S1.getScheduledLinks().size());
-
-      int candidateChannel = el.first;
-
-      Link auxLink(idLink);
-      auxLink.setChannel(candidateChannel);
-      S1.insert(auxLink);
-
-      if (whichBw(candidateChannel) > 20) {
-        split(S2, S1, candidateChannel);
-      }
-
-      decideBest(Scopy, S1, S2);
-    }
-
-    if (Scopy > S) {
-      S = Scopy;
-    }
-  }
-
-  double obj = S.getObjective();
-//  printf("Tem %d conexoes %lf\n", S.getScheduledLinks().size(), obj);
-//  this_thread::sleep_for(chrono::milliseconds(3000));
-  return -obj;
-};
-
-int HeuristicDecoder::getQuantConnections() {
-  return nConnections;
-}
-
-void HeuristicDecoder::setInitialTime() {
-  TempoFO_StarInic = clock();
-}
-
-int Solution::getNumberOfScheduledLinks() const {
-  return scheduled_links.size();
-}
-
-Link Solution::removeLinkByIndex(int index) {
-  swap(scheduled_links[index], scheduled_links.back());
-  Link ret(scheduled_links.back());
-
-  scheduled_links.pop_back();
+  ret = retCopy;
   return ret;
 }
 
-void Solution::exchangeLinks(int idOldLink, Link newLink) {
-  scheduled_links[idOldLink] = newLink; //TODO: is this what I meant to do?
+Connection::Connection(int id, double throughput, double interference) : id(id),
+                                                                         throughput(throughput),
+                                                                         interference(interference) {}
+
+Channel::Channel(double throughput, double interference, int bandwidth, const vector<Connection> &connections)
+        : throughput(throughput), interference(interference), bandwidth(bandwidth), connections(connections) {}
+
+Channel::Channel(int bandwidth) : bandwidth(bandwidth) {
+  interference = 0.0;
+  throughput = 0.0;
+  connections = vector<Connection>();
 }
 
-void Solution::setScheduledLinks(const deque<Link> &newLinks) {
-  this->scheduled_links = deque<Link>(newLinks.begin(), newLinks.end());
-  objectiveFlag = false;
+Spectrum::Spectrum(int maxFrequency, int usedFrequency, const vector<Channel> &channels) : maxFrequency(
+        maxFrequency), usedFrequency(usedFrequency), channels(channels) {}
+
+Solution::Solution(const vector<Spectrum> &spectrums, double total, bool flag) : spectrums(spectrums),
+                                                                                 totalThroughput(total),
+                                                                                 throughputFlag(flag) {}
+
+Solution::Solution() {
+  throughputFlag = true;
 }
 
-void Solution::addLinks(const deque<Link> &links) { //TODO: verify ZeroLinks
-  for (const Link &link_ : links) {
-    insert(link_);
+void Solution::printSolution(FILE *file) {
+  if (file == NULL) {
+    file = stdout;
   }
-  objectiveFlag = false;
-}
 
-vector<int> Solution::getScheduledChannels() const {
-  set<int> setRet;
-  for (int i = 0; i < scheduled_links.size(); i++) {
-    setRet.insert(scheduled_links[i].getChannel());
-  }
-
-  return vector<int>(setRet.begin(), setRet.end());
-}
-
-double Solution::getChannelThroughput(int channel) const {
-  double ret = 0.0;
-  for (const Link &x : scheduled_links) {
-    if (x.getChannel() == channel) {
-      ret += channel;
+  fprintf(file, "%lf\n", totalThroughput);
+  for (int i = 0; i < spectrums.size(); i++) {
+    fprintf(file, "In spec %d:\n", i);
+    for (int j = 0; j < spectrums[i].channels.size(); j++) {
+      fprintf(file, "  In channel %d: ", j);
+      for (Connection &conn : spectrums[i].channels[j].connections) {
+        fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR, conn.throughput);
+      }
+      fprintf(file, "\n");
     }
+    fprintf(file, "\n");
   }
-  return ret;
-}
-
-void dfs(int u, int pai, string path) {
-//  printf("seeing %d with father %d and path %s\n", u, pai, path.c_str());
-  if (pai != -1) {
-    PATH_TO[pai][u] = path;
-  }
-
-  if (mapChtoCh.find(u) != mapChtoCh.end()) {
-    dfs(mapChtoCh[u].first, u, path + "L");
-    dfs(mapChtoCh[u].second, u, path + "R");
-  }
-}
-
-void Solution::setZeroLinks(const vector<int> &zeroLinks) {
-  this->zeroLinks = vector<int>(zeroLinks);
-}
-
-vector<int> Solution::getZeroLinks() {
-  return this->zeroLinks;
 }

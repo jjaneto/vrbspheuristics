@@ -11,11 +11,11 @@ timelimit=10
 #done;
 
 for var in "${variant[@]}"; do
-for i in 16 32; do
-outDirectory="./results/${var}/U_${i}/";
-echo ${outDirectory};
-for ((j = 1; j <= 3; j++)); do
-./main ${var} ${timelimit} ${outDirectory} < ../Instancias/D250x250/U_${i}/U_${i}_${j}.txt 2> error${variant}.txt;
-done;
-done;
-done;
+  for i in 16 32; do
+    outDirectory="./results/${var}/U_${i}/"
+    echo ${outDirectory}
+    for ((j = 1; j <= 3; j++)); do
+      ./main ${var} ${timelimit} ${outDirectory} <../Instancias/D250x250/U_${i}/U_${i}_${j}.txt 2>error${variant}.txt
+    done
+  done
+done
