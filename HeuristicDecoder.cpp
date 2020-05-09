@@ -156,7 +156,7 @@ int bwIdx(int bw) {
   return 0;
 }
 
-bool double_equals(double a, double b, double epsilon = 0.000000001) {
+bool double_equals(double a, double b, double epsilon) {
   return std::abs(a - b) < epsilon;
 }
 
@@ -169,7 +169,7 @@ bool operator<(const Solution &o1, const Solution &o2) {
   return o1.totalThroughput < o2.totalThroughput;
 }
 
-double computeConnectionThroughput(Connection &conn, int bandwidth, bool force = false) {
+double computeConnectionThroughput(Connection &conn, int bandwidth, bool force) {
   int mcs = -1;
   int maxDataRate = bandwidth == 20 ? 8 : 9;
 
@@ -234,15 +234,16 @@ double computeThroughput(Solution &curr, bool force) {
 
   for (int s = 0; s < curr.spectrums.size(); s++) {
     for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
-      double chThroughput = 0.0;
+      double &chThroughput = curr.spectrums[s].channels[c].throughput;
+      chThroughput = 0.0;
       for (Connection &conn : curr.spectrums[s].channels[c].connections) {
         conn.interference = 0.0;
+        conn.throughput = 0.0;
         for (Connection &otherConn : curr.spectrums[s].channels[c].connections) {
           conn.interference += interferenceMatrix[otherConn.id][conn.id];
         }
         chThroughput += computeConnectionThroughput(conn, curr.spectrums[s].channels[c].bandwidth, force);
       }
-      curr.spectrums[s].channels[c].throughput = chThroughput;
       OF += chThroughput;
     }
   }
@@ -365,6 +366,7 @@ Solution createSolution() {
 
   shuffle(links.begin(), links.end(), whatever);
 
+  vector<int> notInserted;
   Solution retCopy(ret);
   for (int conn : links) {
     Solution copy1(retCopy);
@@ -378,10 +380,20 @@ Solution createSolution() {
 
     if (copy1 > retCopy) {
       retCopy = copy1;
+    } else {
+      notInserted.push_back(conn);
     }
   }
 
   ret = retCopy;
+  Channel zeroChannel(0.0, 0.0, 0, vector<Connection>());
+  for (const int x : notInserted) {
+    if (!x) {
+      zeroChannel.connections.emplace_back(Connection(x));
+    }
+  }
+
+  ret.spectrums.emplace_back(Spectrum(0, 0, {zeroChannel}));
   return ret;
 }
 
@@ -409,8 +421,13 @@ Solution::Solution() {
   throughputFlag = true;
 }
 
+Connection::Connection(int id) : id(id) {
+  interference = 0.0;
+  throughput = 0.0;
+}
+
 void Solution::printSolution(FILE *file) {
-  if (file == NULL) {
+  if (file == nullptr) {
     file = stdout;
   }
 
@@ -418,7 +435,7 @@ void Solution::printSolution(FILE *file) {
   for (int i = 0; i < spectrums.size(); i++) {
     fprintf(file, "In spec %d:\n", i);
     for (int j = 0; j < spectrums[i].channels.size(); j++) {
-      fprintf(file, "  In channel %d: ", j);
+      fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
       for (Connection &conn : spectrums[i].channels[j].connections) {
         fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR, conn.throughput);
       }

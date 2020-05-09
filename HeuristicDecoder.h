@@ -22,7 +22,7 @@
 
 #include "MTRand.h"
 
-const int MAX_CONN = 128; //FIXME
+const int MAX_CONN = 2048; //FIXME
 
 extern int nConnections, nSpectrums;
 extern double dataRates[10][4];
@@ -40,7 +40,10 @@ struct Connection {
     double throughput;
     double interference;
     double SINR;
+
     Connection(int id, double throughput, double interference);
+
+    Connection(int id);
 };
 
 struct Channel {
@@ -81,7 +84,7 @@ public:
 
     Solution();
 
-    void printSolution(FILE *file);
+    void printSolution(FILE *file = nullptr);
 
     friend bool operator>(const Solution &o1, const Solution &o2);
 
@@ -97,6 +100,10 @@ Channel insertInChannel(const Channel &channel, int conn);
 Channel deleteFromChannel(const Channel &channel, int conn);
 
 double computeThroughput(Solution &curr, bool force = false);
+
+bool double_equals(double a, double b, double epsilon = 0.000000001);
+
+double computeConnectionThroughput(Connection &conn, int bandWidth, bool force = false);
 
 Solution createSolution();
 
