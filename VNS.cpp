@@ -337,11 +337,12 @@ Solution newVNS_Reinsert(Solution &multiple, Solution &curr) {
 
 bool checkOne(const Solution &s) {
   set<int> x;
-  for (const Spectrum &spectrum : s.spectrums) {
-    for (const Channel &channel : spectrum.channels) {
-      for (const Connection &connection : channel.connections) {
+
+  for (int i = 0; i < s.spectrums.size(); i++) {
+    for (int j = 0; j < s.spectrums[i].channels.size(); j++) {
+      for (const Connection &connection : s.spectrums[i].channels[j].connections) {
         if (x.find(connection.id) != x.end()) {
-          printf("Duplicated %d\n", connection.id);
+          fprintf(stderr, "Duplicated %d in {%d, %d}\n", connection.id, i, j);
           return false;
         }
 
@@ -409,9 +410,9 @@ Solution VNS(Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
   puts("============== WITH DEBUG ==============");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_16/U_16_1.txt", "r", stdin);
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_128/U_128_1.txt", "r", stdin);
 
-  maximumTime = 10;
+  maximumTime = 60;
 #else
   if (argc != 5) {
     fprintf(stderr, "wrong arguments. Provided %d, Must be: stdin, solutionFile, objectiveFile, timeLimit\n", argc);
@@ -455,8 +456,9 @@ int main(int argc, char *argv[]) {
   Solution aux = createSolution();
   Solution ans = VNS(aux);
 
+#ifdef DEBUG_CLION
   ans.printSolution();
-
+#else
   if (solutionFile != nullptr) {
     ans.printSolution(solutionFile);
   } else {
@@ -473,5 +475,6 @@ int main(int argc, char *argv[]) {
 
   fclose(solutionFile);
   fclose(objectivesFile);
+#endif
   return 0;
 }

@@ -371,7 +371,11 @@ Solution createSolution() {
   for (int conn : links) {
     Solution copy1(retCopy);
     pair<int, int> where = insert(copy1, conn);
-    Solution copy2 = split(copy1, where);
+//    Solution copy2 = split(copy1, where);
+
+    Solution copy2;
+    if (copy1.spectrums[where.first].channels[where.second].bandwidth >= 40)
+      copy2 = split(copy1, where);
 
 //    printf("comparing %lf with %lf\n", copy1.totalThroughput, copy2.totalThroughput);
     if (copy2 > copy1) {
