@@ -315,7 +315,11 @@ Solution split(Solution newSol, ii where) {
       child2.connections.emplace_back(scheduled_conn[a]);
     }
 
-    for (int i = 2; i < scheduled_conn.size(); i++) {
+    for (int i = 0; i < scheduled_conn.size(); i++) {
+      if (i == a || i == b) {
+        continue;
+      }
+
       if (rng.randInt(1)) {
         child1.connections.emplace_back(scheduled_conn[i]);
       } else {
@@ -363,9 +367,13 @@ Solution createSolution() {
         if (copySolution2.spectrums[s].channels[c].bandwidth >= 40)
           candidate2 = split(candidate1, {s, c});
 
+        assert(checkOne(candidate1));
+
         if (candidate2 > candidate1) { //Better to split
           candidate1 = candidate2;
         }
+
+        assert(checkOne(candidate2));
 
         if (candidate1 > retCopy) {
           inserted = true;

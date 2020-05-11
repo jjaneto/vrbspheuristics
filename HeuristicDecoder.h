@@ -91,6 +91,8 @@ public:
     friend bool operator<(const Solution &o1, const Solution &o2);
 };
 
+bool checkOne(const Solution &s);
+
 int bwIdx(int bw);
 
 void loadData();
