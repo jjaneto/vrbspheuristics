@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 
-instancias=("U_16")
+instancias=("U_8" "U_16" "U_32" "U_64" "U_128")
 mod="D250x250"
-timeLimit=10
+timeLimit=600
+directoryResults="results"
 
-for inst in "${instancias[@]}"; do
-  mkdir -p results/${inst}
-  pathResults="results/${inst}"
+for ((i = 1; i <= 30; i++)); do
   objectivesFile="objectivesFile.txt"
-  for ((i = 1; i <= 1; i++)); do
+  for inst in "${instancias[@]}"; do
+    pathResults="${directoryResults}/${inst}"
+
+    mkdir -p ${pathResults}
+
     file="${mod}/${inst}/${inst}_${i}.txt"
-    solutionsFile="solutionFile_"${inst}_${i}".txt";
+    solutionsFile="solutionFile_"${inst}_${i}".txt"
     echo "Trying experiment ${file}"
     ./main ../Instancias/${file} ${pathResults}/"${solutionsFile}" ${pathResults}/"${objectivesFile}" ${timeLimit}
   done
