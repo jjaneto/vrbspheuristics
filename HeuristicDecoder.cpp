@@ -329,8 +329,14 @@ Solution split(Solution newSol, ii where) {
   return newSol;
 }
 
+void rawInsert(Solution &sol, int conn, ii where) {
+  sol.spectrums[where.first].channels[where.second].connections.emplace_back(Connection(conn));
+}
+
 Solution createSolution() {
   Solution ret(initConfiguration, 0.0, true);
+  Channel zeroChannel(0.0, 0.0, 0, vector<Connection>());
+  ret.spectrums.emplace_back(Spectrum(0, 0, {zeroChannel}));
 
   vector<int> links;
   for (int i = 0; i < nConnections; i++)
@@ -338,10 +344,10 @@ Solution createSolution() {
 
   shuffle(links.begin(), links.end(), whatever);
 
-  vector<int> notInserted;
   Solution retCopy(ret);
   for (int conn : links) {
     Solution copySolution(retCopy);
+    bool inserted = false;
 
     for (int s = 0; s < copySolution.spectrums.size(); s++) {
       for (int c = 0; c < copySolution.spectrums[s].channels.size(); c++) {
@@ -362,21 +368,18 @@ Solution createSolution() {
         }
 
         if (candidate1 > retCopy) {
+          inserted = true;
           retCopy = candidate1;
         }
       }
     }
-  }
 
-  ret = retCopy;
-  Channel zeroChannel(0.0, 0.0, 0, vector<Connection>());
-  for (const int x : notInserted) {
-    if (!x) {
-      zeroChannel.connections.emplace_back(Connection(x));
+    if (!inserted) {
+      rawInsert(retCopy, conn, {retCopy.spectrums.size() - 1, 0});
     }
   }
 
-  ret.spectrums.emplace_back(Spectrum(0, 0, {zeroChannel}));
+  ret = retCopy;
   return ret;
 }
 
@@ -415,16 +418,20 @@ void Solution::printSolution(FILE *file) {
     file = stdout;
   }
 
+  int cont = 0;
   fprintf(file, "%lf\n", totalThroughput);
   for (int i = 0; i < spectrums.size(); i++) {
     fprintf(file, "In spec %d:\n", i);
     for (int j = 0; j < spectrums[i].channels.size(); j++) {
       fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
       for (Connection &conn : spectrums[i].channels[j].connections) {
+        cont++;
         fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR, conn.throughput);
       }
       fprintf(file, "\n");
     }
     fprintf(file, "\n");
   }
+
+  fprintf(file, "TOTAL OF %d CONNECTIONS\n", cont);
 }

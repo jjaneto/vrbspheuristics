@@ -95,6 +95,8 @@ int bwIdx(int bw);
 
 void loadData();
 
+void rawInsert(Solution &sol, int conn, ii where);
+
 Channel insertInChannel(const Channel &channel, int conn);
 
 Channel deleteFromChannel(const Channel &channel, int conn);
