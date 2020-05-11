@@ -22,7 +22,7 @@
 
 #include "MTRand.h"
 
-const int MAX_CONN = 2048; //FIXME
+const int MAX_CONN = 2048;
 
 extern int nConnections, nSpectrums;
 extern double dataRates[10][4];

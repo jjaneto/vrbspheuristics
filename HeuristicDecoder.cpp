@@ -262,34 +262,6 @@ void insertInSpectrum(Solution &sol, vector<Channel> &channels, int specId) {
   computeThroughput(sol);
 }
 
-ii insert(Solution &curr, int conn) {
-  ii best = {-1, -1};
-
-  Solution candidate, aux(curr);
-  for (int s = 0; s < aux.spectrums.size(); s++) {
-    Spectrum &spectrum = aux.spectrums[s];
-    for (int c = 0; c < spectrum.channels.size(); c++) {
-      aux.throughputFlag = false;
-      Channel copyChannel = insertInChannel(spectrum.channels[c], conn);
-
-      swap(spectrum.channels[c], copyChannel);
-      computeThroughput(aux);
-
-      if (aux > candidate) {
-        best = {s, c};
-        candidate = aux;
-      }
-
-      aux.totalThroughput = curr.totalThroughput;
-      aux.throughputFlag = curr.throughputFlag;
-      swap(spectrum.channels[c], copyChannel);
-    }
-  }
-
-  curr = candidate;
-  return best;
-}
-
 Solution split(Solution newSol, ii where) {
   Channel toSplit = newSol.spectrums[where.first].channels[where.second];
   Channel child1(toSplit.bandwidth / 2), child2(toSplit.bandwidth / 2);
@@ -369,23 +341,30 @@ Solution createSolution() {
   vector<int> notInserted;
   Solution retCopy(ret);
   for (int conn : links) {
-    Solution copy1(retCopy);
-    pair<int, int> where = insert(copy1, conn);
-//    Solution copy2 = split(copy1, where);
+    Solution copySolution(retCopy);
 
-    Solution copy2;
-    if (copy1.spectrums[where.first].channels[where.second].bandwidth >= 40)
-      copy2 = split(copy1, where);
+    for (int s = 0; s < copySolution.spectrums.size(); s++) {
+      for (int c = 0; c < copySolution.spectrums[s].channels.size(); c++) {
+        Solution copySolution2(copySolution);
+        Channel newChannel = insertInChannel(copySolution2.spectrums[s].channels[c], conn);
 
-//    printf("comparing %lf with %lf\n", copy1.totalThroughput, copy2.totalThroughput);
-    if (copy2 > copy1) {
-      copy1 = copy2;
-    }
+        swap(newChannel, copySolution2.spectrums[s].channels[c]);
+        computeThroughput(copySolution2);
 
-    if (copy1 > retCopy) {
-      retCopy = copy1;
-    } else {
-      notInserted.push_back(conn);
+        Solution candidate1 = copySolution2;
+        Solution candidate2;
+
+        if (copySolution2.spectrums[s].channels[c].bandwidth >= 40)
+          candidate2 = split(candidate1, {s, c});
+
+        if (candidate2 > candidate1) { //Better to split
+          candidate1 = candidate2;
+        }
+
+        if (candidate1 > retCopy) {
+          retCopy = candidate1;
+        }
+      }
     }
   }
 
@@ -423,6 +402,7 @@ Solution::Solution(const vector<Spectrum> &spectrums, double total, bool flag) :
 
 Solution::Solution() {
   throughputFlag = true;
+  totalThroughput = 0.0;
 }
 
 Connection::Connection(int id) : id(id) {
