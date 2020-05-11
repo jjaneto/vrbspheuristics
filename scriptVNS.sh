@@ -14,7 +14,8 @@ for ((i = 1; i <= 30; i++)); do
 
     file="${mod}/${inst}/${inst}_${i}.txt"
     solutionsFile="solutionFile_"${inst}_${i}".txt"
-    echo "Trying experiment ${file}"
-    ./main ../Instancias/${file} ${pathResults}/"${solutionsFile}" ${pathResults}/"${objectivesFile}" ${timeLimit}
+    args="../Instancias/${file} ${pathResults}/"${solutionsFile}" ${pathResults}/"${objectivesFile}" ${timeLimit}"
+    echo "Trying experiment ${file} with arguments ${args}"
+    ./main Instancias/${file} ${pathResults}/"${solutionsFile}" ${pathResults}/"${objectivesFile}" ${timeLimit}
   done
 done
