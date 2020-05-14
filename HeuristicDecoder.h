@@ -29,6 +29,7 @@ extern double dataRates[10][4];
 extern double distanceMatrix[MAX_CONN][MAX_CONN], interferenceMatrix[MAX_CONN][MAX_CONN];
 extern double senders[MAX_CONN][2], receivers[MAX_CONN][2];
 extern std::vector<std::vector<double>> SINR;
+extern std::pair<int, int> zeroChannel;
 extern double powerSender, alfa, noise, ttm;
 extern MTRand rng;
 extern const int MAX_SPECTRUM, MAX_CHANNELS;
@@ -40,10 +41,19 @@ struct Connection {
     double throughput;
     double interference;
     double SINR;
+    double distanceSR;
 
-    Connection(int id, double throughput, double interference);
+    Connection(int id, double throughput, double interference, double distanceSR);
 
     Connection(int id);
+
+    bool operator<(const Connection &other) const {
+      return distanceSR < other.distanceSR;
+    }
+
+    bool operator>(const Connection &other) const {
+      return !operator<(other);
+    }
 };
 
 struct Channel {
@@ -99,7 +109,7 @@ void loadData();
 
 void rawInsert(Solution &sol, int conn, ii where);
 
-Channel insertInChannel(const Channel &channel, int conn);
+Channel insertInChannel(Channel newChannel, int conn);
 
 Channel deleteFromChannel(const Channel &channel, int conn);
 

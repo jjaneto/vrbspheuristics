@@ -20,6 +20,7 @@ std::vector<Spectrum> initConfiguration;
 std::random_device rd;
 auto whatever = std::default_random_engine{rd()};
 MTRand rng;
+std::pair<int, int> zeroChannel;
 
 inline double distance(double X_si, double Y_si, double X_ri, double Y_ri) {
   return hypot((X_si - X_ri), (Y_si - Y_ri));
@@ -92,6 +93,8 @@ void initSpectrums() {
 
     assert(sp.maxFrequency - sp.usedFrequency >= 0);
   }
+
+  zeroChannel = {initConfiguration.size(), 0};
 }
 
 void loadData() {
@@ -143,6 +146,29 @@ void loadData() {
 
   initSpectrums();
   distanceAndInterference();
+
+//  printf("===== SINR ======\n");
+//  for (int i = 0; i < 10; i++) {
+//    for (int j = 0; j < 4; j++) {
+//      printf("%7.5lf ", SINR[i][j]);
+//    }
+//    puts("");
+//  }
+//
+//  printf("===== DR ======\n");
+//  for (int i = 0; i < 10; i++) {
+//    for (int j = 0; j < 4; j++) {
+//      printf("%7.5lf ", dataRates[i][j]);
+//    }
+//    puts("");
+//  }
+
+//  for (int i = 0; i < 10; i++) {
+//    for (int j = 0; j < 10; j++) {
+//      printf("%.10lf ", interferenceMatrix[i][j]);
+//    }
+//    puts("");
+//  }
 }
 
 int bwIdx(int bw) {
@@ -177,11 +203,15 @@ double computeConnectionThroughput(Connection &conn, int bandwidth, bool force) 
     mcs = maxDataRate;
     conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
   } else {
-    double conn_SINR = (powerSender / pow(distanceMatrix[conn.id][conn.id], alfa)) / (conn.interference + noise);
+    double conn_SINR = (powerSender / pow(conn.distanceSR, alfa)) / (conn.interference + noise);
     conn.SINR = conn_SINR;
 
     while (mcs + 1 <= maxDataRate && conn_SINR > SINR[mcs + 1][bwIdx(bandwidth)])
       mcs++;
+
+    if (force) {
+      printf("   ->> SINR EH %.10lf, MCS %d, BW %d\n", conn_SINR, mcs, bandwidth);
+    }
 
 
     conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
@@ -190,13 +220,22 @@ double computeConnectionThroughput(Connection &conn, int bandwidth, bool force) 
   return conn.throughput;
 }
 
-Channel insertInChannel(const Channel &channel, int idConn) {
-  Channel newChannel = channel;
-  Connection conn(idConn, 0.0, 0.0);
+void testConnection(Connection &conn, int bandwidth, bool force = true) {
+  printf("conn %d:\n", conn.id);
+  printf("  interference: %.10lf\n", conn.interference);
+  printf("  bw: %d\n", bandwidth);
+  printf("  distanceSR: %.10lf\n", conn.distanceSR);
+  computeConnectionThroughput(conn, bandwidth, true);
+}
+
+Channel insertInChannel(Channel newChannel, int idConn) {
+  Connection conn(idConn, 0.0, 0.0, distanceMatrix[idConn][idConn]);
 
   for (Connection &connection : newChannel.connections) {
-    connection.interference += interferenceMatrix[conn.id][connection.id];
-    conn.interference += interferenceMatrix[connection.id][conn.id];
+//    connection.interference += interferenceMatrix[conn.id][connection.id];
+//    conn.interference += interferenceMatrix[connection.id][conn.id];
+    connection.interference += interferenceMatrix[connection.id][conn.id];
+    conn.interference += interferenceMatrix[conn.id][connection.id];
   }
 
   newChannel.connections.emplace_back(conn);
@@ -220,7 +259,7 @@ Channel deleteFromChannel(const Channel &channel, int idConn) {
 
   newChannel.throughput = 0.0;
   for (Connection &conn : newChannel.connections) {
-    conn.interference -= interferenceMatrix[idConn][conn.id];
+    conn.interference -= interferenceMatrix[conn.id][idConn];
     computeConnectionThroughput(conn, newChannel.bandwidth);
     newChannel.throughput += conn.throughput;
   }
@@ -228,19 +267,24 @@ Channel deleteFromChannel(const Channel &channel, int idConn) {
   return newChannel;
 }
 
-
 double computeThroughput(Solution &curr, bool force) {
   double OF = 0.0;
 
   for (int s = 0; s < curr.spectrums.size(); s++) {
     for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
+      if (make_pair(s, c) == zeroChannel)
+        break;
+
       double &chThroughput = curr.spectrums[s].channels[c].throughput;
       chThroughput = 0.0;
       for (Connection &conn : curr.spectrums[s].channels[c].connections) {
         conn.interference = 0.0;
         conn.throughput = 0.0;
         for (Connection &otherConn : curr.spectrums[s].channels[c].connections) {
-          conn.interference += interferenceMatrix[otherConn.id][conn.id];
+          if (conn.id == 0 && force) {
+//            printf("vou somar %.10lf\n", interferenceMatrix[conn.id][otherConn.id]);
+          }
+          conn.interference += interferenceMatrix[conn.id][otherConn.id];
         }
         chThroughput += computeConnectionThroughput(conn, curr.spectrums[s].channels[c].bandwidth, force);
       }
@@ -262,86 +306,146 @@ void insertInSpectrum(Solution &sol, vector<Channel> &channels, int specId) {
   computeThroughput(sol);
 }
 
-Solution split(Solution newSol, ii where) {
-  Channel toSplit = newSol.spectrums[where.first].channels[where.second];
-  Channel child1(toSplit.bandwidth / 2), child2(toSplit.bandwidth / 2);
-
-  swap(newSol.spectrums[where.first].channels[where.second], newSol.spectrums[where.first].channels.back());
-  newSol.spectrums[where.first].channels.pop_back();
-
-  vector<Connection> scheduled_conn(toSplit.connections);
-
-  if (scheduled_conn.size() == 1) {
-    if (rng.randInt(1)) {
-      child1.connections.push_back(scheduled_conn[0]);
-    } else {
-      child2.connections.push_back(scheduled_conn[0]);
-    }
-  } else if (scheduled_conn.size() == 2) {
-    if (rng.randInt(1)) {
-      child1.connections.push_back(scheduled_conn[0]);
-      child2.connections.push_back(scheduled_conn[1]);
-    } else {
-      child1.connections.push_back(scheduled_conn[1]);
-      child2.connections.push_back(scheduled_conn[0]);
-    }
-  } else {//Three or more connections
-    int a = -1, b = -1;
-    double a_in = 0.0, b_in = 0.0;
-    for (int i = 0; i < scheduled_conn.size(); i++) {
-      if (scheduled_conn[i].interference >= a_in) {
-        a = i;
-        a_in = scheduled_conn[i].interference;
-      }
-    }
-
-    for (int i = 0; i < scheduled_conn.size(); i++) {
-      if (i == a)
-        continue;
-
-      if (scheduled_conn[i].interference >= b_in) {
-        b = i;
-        b_in = scheduled_conn[i].interference;
-      }
-    }
-
-    assert(a >= 0 && b >= 0 && a != b);
-
-    if (rng.randInt(1)) {
-      child1.connections.emplace_back(scheduled_conn[a]);
-      child2.connections.emplace_back(scheduled_conn[b]);
-    } else {
-      child1.connections.emplace_back(scheduled_conn[b]);
-      child2.connections.emplace_back(scheduled_conn[a]);
-    }
-
-    for (int i = 0; i < scheduled_conn.size(); i++) {
-      if (i == a || i == b) {
-        continue;
-      }
-
-      if (rng.randInt(1)) {
-        child1.connections.emplace_back(scheduled_conn[i]);
-      } else {
-        child2.connections.emplace_back(scheduled_conn[i]);
-      }
-    }
-  }
-
-  vector<Channel> aux = {child1, child2};
-  insertInSpectrum(newSol, aux, where.first);
-  return newSol;
-}
-
 void rawInsert(Solution &sol, int conn, ii where) {
   sol.spectrums[where.first].channels[where.second].connections.emplace_back(Connection(conn));
 }
 
+//double testConnThroughput(int idConn, Channel newChannel) {
+//  double ret = 0.0;
+//  Connection conn(idConn, 0.0, 0.0, distanceMatrix[idConn][idConn]);
+//
+//  for (Connection &connection : newChannel.connections) {
+//    connection.interference += interferenceMatrix[conn.id][connection.id];
+//    conn.interference += interferenceMatrix[connection.id][conn.id];
+//  }
+//
+//  newChannel.connections.emplace_back(conn);
+//  newChannel.throughput = 0.0;
+//  for (Connection &connection : newChannel.connections) {
+//    computeConnectionThroughput(connection, newChannel.bandwidth);
+//    newChannel.throughput += connection.throughput;
+//  }
+//
+//  return ret;
+//}
+
+void computeChannelThroughput(vector<Channel> &channels) {
+  for (Channel &channel : channels) {
+    double of = 0.0;
+    for (Connection &conn : channel.connections) {
+      of += computeConnectionThroughput(conn, channel.bandwidth);
+    }
+    channel.throughput = of;
+  }
+}
+
+vector<Channel> split(Channel toSplit) {
+  int newBw = toSplit.bandwidth / 2;
+  vector<Channel> ret;
+  ret.emplace_back(Channel(0.0, 0.0, newBw, vector<Connection>()));
+  ret.emplace_back(Channel(0.0, 0.0, newBw, vector<Connection>()));
+
+  vector<Connection> connToInsert = toSplit.connections;
+  sort(connToInsert.rbegin(), connToInsert.rend());
+
+  double bestThroughputSoFar = 0.0;
+  for (int i = 0; i < connToInsert.size(); i++) {
+    double bestThroughputIteration = 0.0, testando = 0.0;
+    Channel bestChannel(0.0, 0.0, newBw, vector<Connection>());
+    int bestIdx = -1;
+
+    for (int c = 0; c < ret.size(); c++) {
+      Channel inserted = insertInChannel(ret[c], connToInsert[i].id);
+      double resultThroughput = inserted.throughput;
+
+      double g_throughput = (bestThroughputSoFar - ret[c].throughput) + resultThroughput;
+      testando = max(testando, g_throughput);
+      bool one = g_throughput > bestThroughputIteration;
+      bool two = double_equals(g_throughput, bestThroughputIteration) &&
+                 (inserted.connections.size() < bestChannel.connections.size());
+
+      if (one || two) {
+        bestThroughputIteration = g_throughput;
+        bestChannel = inserted;
+        bestIdx = c;
+      }
+    }
+
+//    if (bestIdx < 0) {
+//      printf("tentando inserir em dois canais de %d:\n", newBw);
+//      for (const Connection &conn : connToInsert) {
+//        printf(" {%d, %.3lf} ", conn.id, conn.distanceSR);
+//      }
+//      puts("\n");
+//      printf("  tentei conn %d (%d)\n", connToInsert[i].id, i);
+//      printf("      dados: %.5lf, %.5lf, %.5lf.\n", bestThroughputSoFar, bestThroughputIteration, testando);
+//    }
+    assert(bestIdx >= 0);
+    ret[bestIdx] = bestChannel;
+    bestThroughputSoFar = bestThroughputIteration;
+  }
+  computeChannelThroughput(ret);
+  assert(double_equals(ret[0].throughput + ret[1].throughput, bestThroughputSoFar));
+  return ret;
+}
+
+void printChannel(const Channel &chan, ii where = {-1, -1}) {
+  printf("Atual estado do canal {%d, %d} (%d MHz):\n", where.first, where.second, chan.bandwidth);
+  printf("   Throughput: %.4lf\n", chan.throughput);
+  printf("   Conexoes:");
+  double sum = 0.0;
+  for (const Connection &conn : chan.connections) {
+    sum += conn.throughput;
+    printf(" {%d, %.4lf, %.4lf} ", conn.id, conn.distanceSR, conn.throughput);
+  }
+  puts("");
+
+  assert(double_equals(sum, chan.throughput));
+}
+
+void test_debug(const Solution &sol, int conn) {
+//  printf("Testando insercao de %d\n", conn);
+  double bestFound = 0.0;
+  for (int s = 0; s < sol.spectrums.size(); s++) {
+    for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
+//      printChannel(sol.spectrums[s].channels[c], {s, c});
+      Channel aux = insertInChannel(sol.spectrums[s].channels[c], conn);
+      bestFound = max(bestFound, sol.totalThroughput - sol.spectrums[s].channels[c].throughput + aux.throughput);
+//      printf("===== depois de inserir =====\n");
+//      printChannel(aux, {s, c});
+      if (sol.spectrums[s].channels[c].bandwidth >= 40) {
+//        printf("===== A divisao do canal =====\n");
+        vector<Channel> channelSplit = split(sol.spectrums[s].channels[c]);
+//        printChannel(channelSplit[0]);
+//        printChannel(channelSplit[1]);
+
+        Channel splitAux0 = insertInChannel(channelSplit[0], conn);
+        Channel splitAux1 = insertInChannel(channelSplit[1], conn);
+//        puts(" inserindo em [0]:");
+//        printChannel(splitAux0);
+//        puts(" inserindo em [1]");
+//        printChannel(splitAux1);
+        bestFound = max(bestFound,
+                        sol.totalThroughput - sol.spectrums[s].channels[c].throughput + channelSplit[0].throughput +
+                        splitAux1.throughput);
+        bestFound = max(bestFound,
+                        sol.totalThroughput - sol.spectrums[s].channels[c].throughput + channelSplit[1].throughput +
+                        splitAux0.throughput);
+      }
+
+//      puts("---------- fim do canal");
+    }
+  }
+
+//  printf("    ->>> MAIOR THROUGHPUT FOI %lf <<<-\n", bestFound);
+  if (bestFound > sol.totalThroughput) {
+    printf("OPAAA %lf %lf\n", bestFound, sol.totalThroughput);
+  }
+  assert(bestFound <= sol.totalThroughput);
+}
+
 Solution createSolution() {
   Solution ret(initConfiguration, 0.0, true);
-  Channel zeroChannel(0.0, 0.0, 0, vector<Connection>());
-  ret.spectrums.emplace_back(Spectrum(0, 0, {zeroChannel}));
-
   vector<int> links;
   for (int i = 0; i < nConnections; i++)
     links.emplace_back(i);
@@ -349,51 +453,120 @@ Solution createSolution() {
   shuffle(links.begin(), links.end(), whatever);
 
   Solution retCopy(ret);
-  for (int conn : links) {
-    Solution copySolution(retCopy);
-    bool inserted = false;
+  vector<int> zeroConn;
+  double bestThroughputSoFar = 0.0;
+//  for (int conn : links) {
+  for (int conn = 0; conn < 165; conn++) {
+    double bestThroughputIteration = bestThroughputSoFar;
+    vector<Channel> bestSplitChannels;
+    Channel bestChannel(0.0, 0.0, 0, vector<Connection>());
+    Channel oldChannel(0.0, 0.0, 0, vector<Connection>());
+    ii where = {-1, -1};
+    bool isSplit = false, inserted = false;
+    int bestBandwidthSplit = -1, bandwidthSplit = -1;
 
-    for (int s = 0; s < copySolution.spectrums.size(); s++) {
-      for (int c = 0; c < copySolution.spectrums[s].channels.size(); c++) {
-        Solution copySolution2(copySolution);
-        Channel newChannel = insertInChannel(copySolution2.spectrums[s].channels[c], conn);
 
-        swap(newChannel, copySolution2.spectrums[s].channels[c]);
-        computeThroughput(copySolution2);
+    for (int s = 0; s < retCopy.spectrums.size(); s++) {
+      for (int c = 0; c < retCopy.spectrums[s].channels.size(); c++) {
+        const Channel &currentChannel = retCopy.spectrums[s].channels[c];
+        bandwidthSplit = -1;
 
-        Solution candidate1 = copySolution2;
-        Solution candidate2;
+        Channel channelInserted = insertInChannel(currentChannel, conn);
+        vector<Channel> channelSplit;
 
-        if (copySolution2.spectrums[s].channels[c].bandwidth >= 40)
-          candidate2 = split(candidate1, {s, c});
-
-        assert(checkOne(candidate1));
-
-        if (candidate2 > candidate1) { //Better to split
-          candidate1 = candidate2;
+        if (channelInserted.bandwidth >= 40) {
+          channelSplit = split(channelInserted);
         }
 
-        assert(checkOne(candidate2));
+        double ammount = channelInserted.throughput;
+        bool betterSplit = false;
+        if (!channelSplit.empty()) {
+          ammount = max(channelSplit[0].throughput + channelSplit[1].throughput, ammount);
+          betterSplit = (channelSplit[0].throughput + channelSplit[1].throughput) > channelInserted.throughput;
+        }
 
-        if (candidate1 > retCopy) {
+        bandwidthSplit = betterSplit ? currentChannel.bandwidth / 2 : currentChannel.bandwidth;
+        double totalThroughputIteration = bestThroughputSoFar - currentChannel.throughput + ammount;
+
+        bool cond1 = totalThroughputIteration > bestThroughputIteration;
+        bool cond2 =
+                double_equals(totalThroughputIteration, bestThroughputIteration) && bandwidthSplit > bestBandwidthSplit;
+        bool cond3 = double_equals(totalThroughputIteration, bestThroughputIteration) &&
+                     (bandwidthSplit == bestBandwidthSplit) && betterSplit == false && isSplit == true;
+        if (cond1 || cond2 || cond3) {
+          bestThroughputIteration = totalThroughputIteration;
           inserted = true;
-          retCopy = candidate1;
+          where = {s, c};
+
+          bestBandwidthSplit = bandwidthSplit;
+          if (betterSplit) {
+            isSplit = true;
+            bestSplitChannels = channelSplit;
+          } else {
+            isSplit = false;
+            bestChannel = channelInserted;
+          }
+//          if (!channelSplit.empty()) {
+//            if (betterSplit) {
+//              isSplit = true;
+//              bestSplitChannels = channelSplit;
+//            } else {
+//              isSplit = false;
+//              bestChannel = channelInserted;
+//            }
+//          } else {
+//            bestChannel = channelInserted;
+//          }
         }
       }
     }
 
-    if (!inserted) {
-      rawInsert(retCopy, conn, {retCopy.spectrums.size() - 1, 0});
+    double aux = bestThroughputSoFar;
+    bestThroughputSoFar = bestThroughputIteration;
+
+    if (inserted) {
+      printf("Coloquei conn %d em {%d, %d}, throughput %.3lf -> %.3lf\n", conn, where.first, where.second, aux,
+             bestThroughputSoFar);
+      if (isSplit) {
+        retCopy.spectrums[where.first].channels.erase(retCopy.spectrums[where.first].channels.begin() + where.second);
+        retCopy.spectrums[where.first].channels.insert(retCopy.spectrums[where.first].channels.begin() + where.second,
+                                                       bestSplitChannels.begin(), bestSplitChannels.end());
+        printf("      -> com split. Throughput (1) %.3lf, (2) %.3lf ==> %.3lf\n", bestSplitChannels[0].throughput,
+               bestSplitChannels[1].throughput, bestSplitChannels[0].throughput + bestSplitChannels[1].throughput);
+      } else {
+        printf("      -> sem split.\n");
+        retCopy.spectrums[where.first].channels[where.second] = bestChannel;
+      }
+      computeThroughput(retCopy);
+
+      if (!double_equals(retCopy.totalThroughput, bestThroughputSoFar)) {
+        printf("vixe %.3lf %.3lf\n", retCopy.totalThroughput, bestThroughputSoFar);
+      }
+      assert(double_equals(retCopy.totalThroughput, bestThroughputSoFar));
+    } else {
+      printf("====== Nao inseri conexao %d ======\n", conn);
+      zeroConn.push_back(conn);
     }
   }
+
+  computeThroughput(retCopy);
+  assert(double_equals(bestThroughputSoFar, retCopy.totalThroughput));
+
+  Channel aux(0.0, 0.0, 0, vector<Connection>());
+  retCopy.spectrums.emplace_back(Spectrum(0, 0, {aux}));
+  for (int i = 0; i < zeroConn.size(); i++) {
+    rawInsert(retCopy, zeroConn[i], {zeroChannel.first, zeroChannel.second});
+  }
+  printf("nao coloquei %lu conexoes\n", zeroConn.size());
 
   ret = retCopy;
   return ret;
 }
 
-Connection::Connection(int id, double throughput, double interference) : id(id),
-                                                                         throughput(throughput),
-                                                                         interference(interference) {}
+Connection::Connection(int id, double throughput, double interference, double distanceSR) : id(id),
+                                                                                            throughput(throughput),
+                                                                                            interference(interference),
+                                                                                            distanceSR(distanceSR) {}
 
 Channel::Channel(double throughput, double interference, int bandwidth, const vector<Connection> &connections)
         : throughput(throughput), interference(interference), bandwidth(bandwidth), connections(connections) {}
@@ -419,6 +592,7 @@ Solution::Solution() {
 Connection::Connection(int id) : id(id) {
   interference = 0.0;
   throughput = 0.0;
+  distanceSR = distanceMatrix[id][id];
 }
 
 void Solution::printSolution(FILE *file) {
@@ -429,6 +603,9 @@ void Solution::printSolution(FILE *file) {
   int cont = 0;
   fprintf(file, "%lf\n", totalThroughput);
   for (int i = 0; i < spectrums.size(); i++) {
+    if (i == 3)
+      break;
+
     fprintf(file, "In spec %d:\n", i);
     for (int j = 0; j < spectrums[i].channels.size(); j++) {
       fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
