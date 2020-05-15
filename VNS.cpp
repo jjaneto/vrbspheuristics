@@ -454,8 +454,10 @@ int main(int argc, char *argv[]) {
   FILE *solutionFile = nullptr, *objectivesFile = nullptr;
   init(argc, argv, &solutionFile, &objectivesFile);
 
-  Solution aux = createSolution();
-  Solution ans = VNS(aux);
+  Solution ans = createSolution();
+
+//  Solution aux = createSolution();
+//  Solution ans = VNS(aux);
 
 #ifdef DEBUG_CLION
   ans.printSolution();
