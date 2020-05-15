@@ -362,7 +362,7 @@ Solution VNS(Solution initSol) {
   double retOF = calcDP(rep);
 
   Solution explicitSol = explicitSolution(rep);
-  initSol.printSolution();
+//  initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
   assert(double_equals(retOF, explicitSol.totalThroughput));
   assert(checkOne(explicitSol));
@@ -454,10 +454,8 @@ int main(int argc, char *argv[]) {
   FILE *solutionFile = nullptr, *objectivesFile = nullptr;
   init(argc, argv, &solutionFile, &objectivesFile);
 
-  Solution ans = createSolution();
-
-//  Solution aux = createSolution();
-//  Solution ans = VNS(aux);
+  Solution aux = createSolution();
+  Solution ans = VNS(aux);
 
 #ifdef DEBUG_CLION
   ans.printSolution();

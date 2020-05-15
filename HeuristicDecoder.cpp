@@ -638,7 +638,7 @@ Solution createSolution() {
   for (int i = 0; i < zeroConn.size(); i++) {
     rawInsert(retCopy, zeroConn[i], {zeroChannel.first, zeroChannel.second});
   }
-  printf("nao coloquei %lu conexoes\n", zeroConn.size());
+//  printf("nao coloquei %lu conexoes\n", zeroConn.size());
 
   ret = retCopy;
   return ret;
