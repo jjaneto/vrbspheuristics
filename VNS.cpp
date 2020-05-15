@@ -362,6 +362,7 @@ Solution VNS(Solution initSol) {
   double retOF = calcDP(rep);
 
   Solution explicitSol = explicitSolution(rep);
+  initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
   assert(double_equals(retOF, explicitSol.totalThroughput));
   assert(checkOne(explicitSol));
@@ -410,9 +411,9 @@ Solution VNS(Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
   puts("============== WITH DEBUG ==============");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_128/U_128_1.txt", "r", stdin);
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_2048/U_2048_1.txt", "r", stdin);
 
-  maximumTime = 60;
+  maximumTime = 10;
 #else
   if (argc != 5) {
     fprintf(stderr, "wrong arguments. Provided %d, Must be: stdin, solutionFile, objectiveFile, timeLimit\n", argc);
