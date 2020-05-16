@@ -196,6 +196,9 @@ bool operator<(const Solution &o1, const Solution &o2) {
 }
 
 double computeConnectionThroughput(Connection &conn, int bandwidth, bool force) {
+  if (bandwidth == 0)
+    return 0.0;
+
   int mcs = -1;
   int maxDataRate = bandwidth == 20 ? 8 : 9;
 
@@ -329,7 +332,7 @@ void rawInsert(Solution &sol, int conn, ii where) {
 //  return ret;
 //}
 
-void computeChannelThroughput(vector<Channel> &channels) {
+void computeChannelsThroughput(vector<Channel> &channels) {
   for (Channel &channel : channels) {
     double of = 0.0;
     for (Connection &conn : channel.connections) {
@@ -338,8 +341,6 @@ void computeChannelThroughput(vector<Channel> &channels) {
     channel.throughput = of;
   }
 }
-
-int GLOBAL_CONT;
 
 double some(const Connection &c1, const Connection &c2) {
   return c1.throughput + c2.throughput;
@@ -381,7 +382,7 @@ vector<Channel> split(Channel toSplit, int spectrum) {
     ret[bestIdx] = bestChannel;
     bestThroughputSoFar = bestThroughputIteration;
   }
-  computeChannelThroughput(ret);
+  computeChannelsThroughput(ret);
 
 //  if (GLOBAL_CONT == 283) {
 //    puts(" SPLIT ");
@@ -473,7 +474,7 @@ Solution createSolution() {
   double bestThroughputSoFar = 0.0;
   for (int conn : links) {
 //  for (int conn = 0; conn < 800; conn++) {
-    GLOBAL_CONT = conn;
+//    GLOBAL_CONT = conn;
 //    if (GLOBAL_CONT == 283)
 //      printf("na conexao %d, throughput atual %.3lf\n", GLOBAL_CONT, bestThroughputSoFar);
     double bestThroughputIteration = bestThroughputSoFar;
@@ -676,10 +677,38 @@ Connection::Connection(int id) : id(id) {
   distanceSR = distanceMatrix[id][id];
 }
 
+bool addChannel(Solution &sol, int spec, int bw) {
+  int freeFrequency = sol.spectrums[spec].maxFrequency - sol.spectrums[spec].usedFrequency;
+  if (freeFrequency < bw) {
+    return false;
+  }
+
+  Channel newChannel(bw);
+  sol.spectrums[spec].channels.emplace_back(newChannel);
+  sol.spectrums[spec].usedFrequency += bw;
+  return true;
+}
+
+bool removeChannel(Solution &sol, ii where) {
+  double usedBw = sol.spectrums[where.first].channels[where.second].bandwidth;
+  sol.spectrums[where.first].usedFrequency -= usedBw;
+  sol.spectrums[where.first].channels.erase(sol.spectrums[where.first].channels.begin() + where.second);
+  return true;
+}
+
 void Solution::printSolution(FILE *file) {
   if (file == nullptr) {
     file = stdout;
   }
+
+//  Solution counterProof;
+//  counterProof.spectrums = initConfiguration;
+//  for (int s = 0; s < spectrums.size(); s++) {
+//    for (int c = 0; c < spectrums[c].channels.size(); c++) {
+//      for (const Connection &conn : spectrums[s].channels[c].connections) {
+//      }
+//    }
+//  }
 
   int cont = 0;
   fprintf(file, "%lf\n", totalThroughput);

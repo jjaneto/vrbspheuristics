@@ -60,14 +60,17 @@ Solution convert20MHz(Solution sol) {
   return sol;
 }
 
-void setDP(const Solution &sol) {
+void setDP(Solution &sol, bool ok = false) {
   memset(chanThroughput, 0, sizeof chanThroughput);
   memset(inSolution, false, sizeof inSolution);
 
   for (int s = 0; s < sol.spectrums.size(); s++) {
+    computeChannelsThroughput(sol.spectrums[s].channels);
     for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
-      //TODO: verify if at this point, the throughput is already updated
       chanThroughput[s][c] = sol.spectrums[s].channels[c].throughput;
+      if (ok) {
+        printf("throughput of {%d, %d} eh %.3lf\n", s, c, chanThroughput[s][c]);
+      }
     }
   }
 }
@@ -88,12 +91,15 @@ double solve(int i, int j) {
   return ret;
 }
 
-double calcDP(Solution &sol) {
+double calcDP(Solution &sol, bool ok = false) {
   double OF = 0.0;
   for (int s = 0; s < sol.spectrums.size(); s++) {
     for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
       if (parent[s][c] == -1) {
         double ret = solve(s, c);
+        if (ok) {
+          printf("will add %.3lf, starting from {%d, %d}\n", ret, s, c);
+        }
         OF += ret;
       }
     }
@@ -102,30 +108,43 @@ double calcDP(Solution &sol) {
   return OF;
 }
 
-bool reinsert(Solution &sol, Connection conn, ii from, ii to, bool force = false) {
+bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to, bool force = false) {
   if (to == from)
     return false;
 
-  Solution copy(sol);
+//  Solution copy(sol);
+
+  Channel &oldChan = sol.spectrums[from.first].channels[from.second];
+  Channel &newChan = sol.spectrums[to.first].channels[to.second];
+
+  Channel copyOldChan = deleteFromChannel(oldChan, conn.id);
+  Channel copyNewChan = insertInChannel(newChan, conn.id);
+
+//  Channel oldChan = deleteFromChannel(copy.spectrums[from.first].channels[from.second], conn.id);
+//  Channel newChan = insertInChannel(copy.spectrums[to.first].channels[to.second], conn.id);
+//
+//  swap(copy.spectrums[from.first].channels[from.second], oldChan);
+//  swap(copy.spectrums[to.first].channels[to.second], newChan);
+
+  double newObjective =
+          objective - oldChan.throughput - newChan.throughput + copyNewChan.throughput + copyOldChan.throughput;
+
   bool improved = false;
-
-  Channel oldChan = deleteFromChannel(copy.spectrums[from.first].channels[from.second], conn.id);
-  Channel newChan = insertInChannel(copy.spectrums[to.first].channels[to.second], conn.id);
-
-  swap(copy.spectrums[from.first].channels[from.second], oldChan);
-  swap(copy.spectrums[to.first].channels[to.second], newChan);
-
-  if (copy > sol)
+  if (newObjective > objective)
     improved = true;
 
-  if ((copy > sol) || force) {
-    sol = copy;
+  if ((newObjective > objective) || force) {
+    oldChan = copyOldChan;
+    newChan = copyNewChan;
+//    computeThroughput(sol); //TODO: do I have to do this?
+    //
+    objective = newObjective;
   }
 
   return improved;
 }
 
-void K_AddDrop(Solution &sol, int K) {
+void K_AddDrop(Solution &sol, double &_FO_delta, int K) {
   ii chFrom = {sol.spectrums.size() - 1, 0};
   K = min(K, int(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size()));
   for (int i = 0; i < K; i++) {
@@ -136,11 +155,11 @@ void K_AddDrop(Solution &sol, int K) {
     int b = rng.randInt(sol.spectrums[a].channels.size() - 1);
     ii channelTo = {a, b};
 
-    reinsert(sol, conn, chFrom, channelTo, true);
+    reinsert(sol, _FO_delta, conn, chFrom, channelTo, true);
   }
 }
 
-void K_RemoveAndInserts(Solution &sol, int K) {
+void K_RemoveAndInserts(Solution &sol, double &_FO_delta, int K) {
   int k = 0;
   while (k < K) {
     int a = rng.randInt(sol.spectrums.size() - 1);
@@ -155,9 +174,9 @@ void K_RemoveAndInserts(Solution &sol, int K) {
     Connection conn = sol.spectrums[a].channels[b].connections[z];
 
     ii from = {a, b};
-    reinsert(sol, conn, from, {sol.spectrums.size() - 1, 0}, true);
+    reinsert(sol, _FO_delta, conn, from, {sol.spectrums.size() - 1, 0}, true);
   }
-  K_AddDrop(sol, K);
+  K_AddDrop(sol, _FO_delta, K);
 }
 
 Solution multipleRepresentation(Solution ret) {
@@ -232,7 +251,7 @@ Solution explicitSolution(const Solution &curr) {
   return ret;
 }
 
-bool fixChannels(Solution &sol) {
+bool fixChannels(Solution &sol, double _FO_delta) {
   bool improved = false;
   ii zeroChannel = {sol.spectrums.size() - 1, 0};
   do {
@@ -246,7 +265,7 @@ bool fixChannels(Solution &sol) {
         while (idx < sol.spectrums[s].channels[c].connections.size()) {
           Connection &conn = sol.spectrums[s].channels[c].connections[idx];
           if (double_equals(computeConnectionThroughput(conn, sol.spectrums[s].channels[c].bandwidth), 0.0)) {
-            reinsert(sol, conn, {s, c}, zeroChannel, true);
+            reinsert(sol, _FO_delta, conn, {s, c}, zeroChannel, true);
             improved = true;
           } else {
             idx++;
@@ -255,13 +274,17 @@ bool fixChannels(Solution &sol) {
       }
     }
   } while (improved);
+  computeThroughput(sol);
   return improved;
 }
 
-Solution newVNS_Reinsert(Solution &multiple, Solution &curr) {
+Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) {
   bool improved = false;
+  int cnt = 0;
   do {
+    double aux0 = clock();
     improved = false;
+//    printf("passei %d _FO_delta eh %.3lf\n", cnt++, _FO_delta);
 
     for (int i = 0; i < nConnections; i++) {
       Solution multipleClean(multiple);
@@ -305,12 +328,16 @@ Solution newVNS_Reinsert(Solution &multiple, Solution &curr) {
         }
       }
 
-      if (bestOF > multiple.totalThroughput) {
+//      printf("aha! %.3lf %.3lf\n", bestOF, _FO_delta);
+      if (bestOF > _FO_delta) {
+//        puts("ah");
+//        printf("improved em %d\n", i);
         improved = true;
+        _FO_delta = bestOF;
 
-        for (int s = 0; s < curr.spectrums.size(); s++) {
-          for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
-            Channel &channel = curr.spectrums[s].channels[c];
+        for (int s = 0; s < multiple.spectrums.size(); s++) {
+          for (int c = 0; c < multiple.spectrums[s].channels.size(); c++) {
+            Channel &channel = multiple.spectrums[s].channels[c];
             for (const Connection &conn : channel.connections) {
               if (conn.id == i) {
                 channel = deleteFromChannel(channel, conn.id);
@@ -328,9 +355,10 @@ Solution newVNS_Reinsert(Solution &multiple, Solution &curr) {
                                                                           i);
           newChan = parent[newSpec][newChan];
         }
-        computeThroughput(multiple);
+//        computeThroughput(multiple);
       }
     }
+//    printf("demorou %lf\n", (((double) (clock() - aux0)) / CLOCKS_PER_SEC));
   } while (improved);
   return explicitSolution(multiple);
 }
@@ -342,7 +370,25 @@ bool checkOne(const Solution &s) {
     for (int j = 0; j < s.spectrums[i].channels.size(); j++) {
       for (const Connection &connection : s.spectrums[i].channels[j].connections) {
         if (x.find(connection.id) != x.end()) {
-          fprintf(stderr, "Duplicated %d in {%d, %d}\n", connection.id, i, j);
+          fprintf(stderr, "(one) Duplicated %d in {%d, %d}\n", connection.id, i, j);
+          return false;
+        }
+
+        x.insert(connection.id);
+      }
+    }
+  }
+
+  return true;
+}
+
+bool checkTwo(const Solution &s) {
+  for (int i = 0; i < s.spectrums.size(); i++) {
+    for (int j = 0; j < s.spectrums[i].channels.size(); j++) {
+      set<int> x;
+      for (const Connection &connection : s.spectrums[i].channels[j].connections) {
+        if (x.find(connection.id) != x.end()) {
+          fprintf(stderr, "(two) Duplicated %d in {%d, %d}\n", connection.id, i, j);
           return false;
         }
 
@@ -370,6 +416,10 @@ Solution VNS(Solution initSol) {
   Solution star = explicitSol;
   Solution localMax = delta;
 
+  double _FO_localMax = retOF;
+  double _FO_delta = retOF;
+  double _FO_star = initSol.totalThroughput;
+
   int K_MUL = max(1, nConnections / 100);
   int K_MAX = 50;
   startTime = clock();
@@ -377,41 +427,54 @@ Solution VNS(Solution initSol) {
     int k = 1;
     while (k <= K_MAX && !stop()) {
       delta = localMax;
+      _FO_delta = _FO_localMax;
+
       if (rng.randInt(1)) { //AddDrop
-        K_AddDrop(delta, k * K_MUL);
-        fixChannels(delta);
+        K_AddDrop(delta, _FO_delta, k * K_MUL);
+        fixChannels(delta, _FO_delta);
       } else { //Reinsert
-        K_RemoveAndInserts(delta, k * K_MUL);
-        fixChannels(delta);
+        K_RemoveAndInserts(delta, _FO_delta, k * K_MUL);
+        fixChannels(delta, _FO_delta);
       }
 
       Solution multiple = multipleRepresentation(delta);
       setDP(multiple);
-      calcDP(multiple);
+      assert(checkTwo(multiple));
+      _FO_delta = calcDP(multiple);
+//      printf("hmm %.3lf\n", _FO_delta);
 
-      explicitSol = newVNS_Reinsert(multiple, delta);
-      fixChannels(explicitSol);
+//      puts("entrei");
+      explicitSol = newVNS_Reinsert(multiple, _FO_delta, delta);
+//      puts("e sai");
+      fixChannels(explicitSol, _FO_delta);
       delta = convert20MHz(explicitSol);
 
-      if (explicitSol > localMax) {
+//      printf("(1) %.3lf %.3lf\n", explicitSol.totalThroughput, localMax.totalThroughput);
+      if (_FO_delta > _FO_localMax) {
         k = 1;
+        _FO_localMax = _FO_delta;
         localMax = delta;
       } else {
         k++;
       }
-      if (explicitSol > star) {
+//      printf("(2) %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
+      if (_FO_localMax > _FO_star) {
+//      if (_FO_localMax > star.totalThroughput) {
+//        printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
+        _FO_star = _FO_localMax;
         star = explicitSol;
       }
     }
   }
 
+  assert(checkOne(star));
   return star;
 }
 
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
   puts("============== WITH DEBUG ==============");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_2048/U_2048_1.txt", "r", stdin);
+  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_256/U_256_1.txt", "r", stdin);
 
   maximumTime = 10;
 #else
@@ -457,7 +520,10 @@ int main(int argc, char *argv[]) {
   Solution aux = createSolution();
   Solution ans = VNS(aux);
 
+  printf("%.3lf ==> %.3lf\n", aux.totalThroughput, ans.totalThroughput);
+
 #ifdef DEBUG_CLION
+//  aux.printSolution();
   ans.printSolution();
 #else
   if (solutionFile != nullptr) {

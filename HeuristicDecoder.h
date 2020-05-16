@@ -103,6 +103,8 @@ public:
 
 bool checkOne(const Solution &s);
 
+bool checkTwo(const Solution &s);
+
 int bwIdx(int bw);
 
 void loadData();
@@ -116,6 +118,8 @@ Channel deleteFromChannel(const Channel &channel, int conn);
 double computeThroughput(Solution &curr, bool force = false);
 
 bool double_equals(double a, double b, double epsilon = 0.000000001);
+
+void computeChannelsThroughput(std::vector<Channel> &channels);
 
 double computeConnectionThroughput(Connection &conn, int bandWidth, bool force = false);
 
