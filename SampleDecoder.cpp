@@ -384,22 +384,6 @@ SampleDecoder::objectiveFunction(const vector<SetSlotTimes> &_timeSlotsGroups, s
 
 int SampleDecoder::convertChromoBandwidth(double _value) const {
   int result = 0;
-
-  /*
-    if(_value<0.25){
-      result= 0;//20MHz a largura de banda
-    }
-    else if(_value<0.5){
-        result= 1;//40MHz a largura de banda
-    }
-    else if(_value<0.75){
-        result= 2;//80MHz a largura de banda
-    }
-    else if(_value<1.0){
-        result= 3;//160MHz a largura de banda
-    }
-    */
-
   if (_value < 0.25) {
     result = 20;//20MHz a largura de banda
   } else if (_value < 0.5) {
@@ -484,16 +468,11 @@ void SampleDecoder::insertFreeChannels(vector<SetSlotTimes> &_timeSlotsGroups, i
           }
 
           dataRate = SINR[9][3];
-
           id_Bandwidth = setBandwidthID(_bandwidth);
           id_DataRate = defineMaxDataRate(dataRate, id_Bandwidth);
-
           totalThroughput = totalThroughput + dataRates[id_DataRate][id_Bandwidth];
-
           _timeSlotsGroups[i].listSpectrum[j].listChannels.push_back(auxChannel);
-
           positionNewChannel = _timeSlotsGroups[i].listSpectrum[j].listChannels.size() - 1;
-
 
           _timeSlotsGroups[i].listSpectrum[j].listChannels[positionNewChannel].bandwidth = _bandwidth;
           _timeSlotsGroups[i].listSpectrum[j].listChannels[positionNewChannel].throughput = dataRates[id_DataRate][id_Bandwidth];
@@ -551,37 +530,24 @@ void SampleDecoder::insertFreeChannels(vector<SetSlotTimes> &_timeSlotsGroups, i
     totalThroughput = totalThroughput + dataRates[id_DataRate][id_Bandwidth];
 
     _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].listChannels.push_back(auxChannelCase2);
-
     positionNewChannel = _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].listChannels.size() - 1;
-
     _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].listChannels[positionNewChannel].throughput = dataRates[id_DataRate][id_Bandwidth];
-
     _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].listChannels[positionNewChannel].listConnections.push_back(
             _idConnection);
-
     _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].spectrumUsed =
             _timeSlotsGroups[auxTime].listSpectrum[auxSpectrum].spectrumUsed + auxChannelCase2.bandwidth;
-
     totalSpectrumUsed = totalSpectrumUsed + auxChannelCase2.bandwidth;
 
     //Nessa estrutura IF-ELSE é trocado o valor do gene responsável por definir a largura de banda que o canal em que uma conexão pode estar
     // pelo valor da largura de banda do canal em que a conexão realmente está localizada.
     if (auxChannelCase2.bandwidth == 20) {
-
       chromosome[(_idConnection * 2) + 1] = (0 + 0.25) / 2.0;
-
     } else if (auxChannelCase2.bandwidth == 40) {
-
       chromosome[(_idConnection * 2) + 1] = (0.5 + 0.25) / 2.0;
-
     } else if (auxChannelCase2.bandwidth == 80) {
-
       chromosome[(_idConnection * 2) + 1] = (0.75 + 0.5) / 2.0;
-
     } else if (auxChannelCase2.bandwidth == 160) {
-
       chromosome[(_idConnection * 2) + 1] = (1.0 + 0.75) / 2.0;
-
     }
   }
 }
@@ -609,7 +575,6 @@ void SampleDecoder::insertBestChannel(vector<SetSlotTimes> &_timeSlotsGroups, in
 
   for (unsigned i = 0; i < _timeSlotsGroups.size(); i++) {
     for (unsigned j = 0; j < _timeSlotsGroups[i].listSpectrum.size(); j++) {
-
       for (unsigned s = 0; s < _timeSlotsGroups[i].listSpectrum[j].listChannels.size(); s++) {
         channelTransmission = true;
 
@@ -658,13 +623,11 @@ void SampleDecoder::insertBestChannel(vector<SetSlotTimes> &_timeSlotsGroups, in
         }
 
         if (channelTransmission == true) {
-
           if (interferenceID_Connection + noise > 0) {
             valueSINR = connections[_idConnection].powerSR / (interferenceID_Connection + noise);
           } else if (interferenceID_Connection + noise == 0) {
             valueSINR = SINR[9][3];
           }
-
 
           id_Bandwidth = setBandwidthID(_timeSlotsGroups[i].listSpectrum[j].listChannels[s].bandwidth);
           id_DataRate = defineMaxDataRate(valueSINR, id_Bandwidth);
@@ -693,7 +656,6 @@ void SampleDecoder::insertBestChannel(vector<SetSlotTimes> &_timeSlotsGroups, in
   unsigned chromosomeBandwith;
 
   if (viableTransmission == true) {
-
     sizeChannel = _timeSlotsGroups[viableChannel.slotTime].listSpectrum[viableChannel.spectrum]
             .listChannels[viableChannel.listChannelsPosition].listConnections.size();
 
@@ -728,24 +690,18 @@ void SampleDecoder::insertBestChannel(vector<SetSlotTimes> &_timeSlotsGroups, in
     chromosomeBandwith = _timeSlotsGroups[viableChannel.slotTime].listSpectrum[viableChannel.spectrum]
             .listChannels[viableChannel.listChannelsPosition].bandwidth;
 
-
     //Nessa estrutura IF-ELSE é trocado o valor do gene responsável por definir a largura de banda que o canal
     // em que uma conexão pode estar
     // pelo valor da largura de banda do canal em que a conexão realmente está localizada.
     if (chromosomeBandwith != _bandwidth) {
-
       if (chromosomeBandwith == 20) {
         chromosome[(_idConnection * 2) + 1] = (0 + 0.25) / 2.0;
-
       } else if (chromosomeBandwith == 40) {
         chromosome[(_idConnection * 2) + 1] = (0.5 + 0.25) / 2.0;
-
       } else if (chromosomeBandwith == 80) {
         chromosome[(_idConnection * 2) + 1] = (0.75 + 0.5) / 2.0;
-
       } else if (chromosomeBandwith == 160) {
         chromosome[(_idConnection * 2) + 1] = (1.0 + 0.75) / 2.0;
-
       }
     }
   }
@@ -770,6 +726,7 @@ double SampleDecoder::buildVRBSP(std::vector<double> &chromosome, vector<unsigne
   unsigned i = 0;
   while ((i < permutation.size()) && (timeSlotsGroupsFULL < totalSpectrum)) {
     positionChromosome = permutation[i] / 2;//Inserção pela ordem definida pelo permutation
+//    printf("(1) tentando conn %d, band %d (%lf)\n", positionChromosome, convertChromoBandwidth(chromosome[permutation[i] + 1]), chromosome[permutation[i] + 1]);
     insertFreeChannels(timeSlotsGroups, convertChromoBandwidth(chromosome[permutation[i] + 1]),
                        positionChromosome, timeSlotsGroupsFULL, chromosome, totalThroughput);
     i++;
@@ -777,6 +734,7 @@ double SampleDecoder::buildVRBSP(std::vector<double> &chromosome, vector<unsigne
 
   while (i < permutation.size()) {
     positionChromosome = permutation[i] / 2;//Inserção pela ordem definida pelo permutation
+//    printf("(2) tentando conn %d, band %d (%lf)\n", positionChromosome, convertChromoBandwidth(chromosome[permutation[i] + 1]), chromosome[permutation[i] + 1]);
     insertBestChannel(timeSlotsGroups, convertChromoBandwidth(chromosome[permutation[i] + 1]),
                       positionChromosome, connectionInterference, chromosome, totalThroughput);
     i++;
@@ -796,10 +754,10 @@ double SampleDecoder::decode(std::vector<double> &chromosome) const {
 
   std::vector<std::pair<double, unsigned> > ranking;//ranking(chromosome.size());
 
-  if ((((double) (clock() - TempoFO_StarInic)) / CLOCKS_PER_SEC) > 600) {
-    myFitness = quantConnections * 780.0 * 10.0;
-    return myFitness;
-  }
+//  if ((((double) (clock() - TempoFO_StarInic)) / CLOCKS_PER_SEC) > 600) {
+//    myFitness = quantConnections * 780.0 * 10.0;
+//    return myFitness;
+//  }
 
   // Here we compute the fitness as the inner product of the random-key vector,
   // i.e. the chromosome, and the vector of indices [0,1,2,...,n-1]
