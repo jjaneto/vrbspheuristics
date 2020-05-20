@@ -2,10 +2,10 @@
 
 instancias=("U_8" "U_16" "U_32" "U_64" "U_128")
 mod="D250x250"
-timeLimit=600
-directoryResults="results"
+timeLimit=5
+directoryResults="resultsBRKGA"
 
-for ((i = 1; i <= 30; i++)); do
+for ((i = 1; i <= 2; i++)); do
   objectivesFile="objectivesFile.txt"
   for inst in "${instancias[@]}"; do
     pathResults="${directoryResults}/${inst}"
