@@ -408,6 +408,30 @@ int main(int argc, char *argv[]) { //DE_RAND_1_BIN
     FILE *solutionFile = nullptr, *objectivesFile = nullptr;
     init(argc, argv, &solutionFile, &objectivesFile);
     vector<Individual> population = run();
+    sort(population.begin(), population.end());
+#ifdef DEBUG_CLION
     printf("%lf\n", population[0].getObjective());
+#else
+    if (solutionFile != nullptr) {
+        vector<double> ans = population[0].getVariables();
+        for (int i = 0; i < ans.size(); i++) {
+            fprintf(solutionFile, "%lf ", ans[i]);
+        }
+        fprintf(solutionFile, "\n");
+    } else {
+        fprintf(stderr, "solutionFile is null!\n");
+        exit(13);
+    }
+
+    if (objectivesFile != nullptr) {
+        fprintf(objectivesFile, "%lf\n", population[0].getObjective());
+    } else {
+        fprintf(stderr, "objectivesFiles is null!\n");
+        exit(13);
+    }
+
+    fclose(solutionFile);
+    fclose(objectivesFile);
+#endif
     return 0;
 }
