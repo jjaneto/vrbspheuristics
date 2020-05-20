@@ -319,6 +319,7 @@ inline void BRKGA< Decoder, RNG >::evolution(Population& curr, Population& next)
 	}
 
 	// Now we must sort 'current' by fitness, since things might have changed:
+//	exit(44);
 	next.sortFitness();
 }
 
