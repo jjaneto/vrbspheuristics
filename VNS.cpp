@@ -251,7 +251,7 @@ Solution explicitSolution(const Solution &curr) {
   return ret;
 }
 
-bool fixChannels(Solution &sol, double _FO_delta) {
+bool fixChannels(Solution &sol, double &_FO_delta) {
   bool improved = false;
   ii zeroChannel = {sol.spectrums.size() - 1, 0};
   do {
@@ -408,7 +408,7 @@ Solution VNS(Solution initSol) {
   double retOF = calcDP(rep);
 
   Solution explicitSol = explicitSolution(rep);
-//  initSol.printSolution();
+  initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
   assert(double_equals(retOF, explicitSol.totalThroughput));
   assert(checkOne(explicitSol));
@@ -460,7 +460,7 @@ Solution VNS(Solution initSol) {
 //      printf("(2) %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
       if (_FO_localMax > _FO_star) {
 //      if (_FO_localMax > star.totalThroughput) {
-//        printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
+        printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
         _FO_star = _FO_localMax;
         star = explicitSol;
       }
@@ -474,7 +474,7 @@ Solution VNS(Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
   puts("============== WITH DEBUG ==============");
-  freopen("/Users/jjaneto/Downloads/codes_new/BRKGA_FF_Best/Instancias/D250x250/U_256/U_256_1.txt", "r", stdin);
+  freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r", stdin);
 
   maximumTime = 10;
 #else
