@@ -48,11 +48,11 @@ struct Connection {
     Connection(int id);
 
     bool operator<(const Connection &other) const {
-      return distanceSR < other.distanceSR;
+        return distanceSR < other.distanceSR;
     }
 
     bool operator>(const Connection &other) const {
-      return !operator<(other);
+        return !operator<(other);
     }
 };
 
@@ -63,11 +63,11 @@ struct Channel {
     std::vector<Connection> connections;
 
     bool operator<(const Channel &other) const {
-      return bandwidth < other.bandwidth;
+        return bandwidth < other.bandwidth;
     }
 
     bool operator>(const Channel &other) const {
-      return !operator<(other);
+        return !operator<(other);
     }
 
     Channel(double throughput, double interference, int bandwidth, const std::vector<Connection> &connections);
@@ -95,6 +95,9 @@ public:
     Solution();
 
     void printSolution(FILE *file = nullptr);
+
+    //AVAILABLE ONLY IN THE META-HEURISTICS FILES
+    double decode(std::vector<double> variables) const;
 
     friend bool operator>(const Solution &o1, const Solution &o2);
 
