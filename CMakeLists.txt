@@ -62,6 +62,10 @@ if (${BRKGA})
             Utility.h
             HeuristicDecoder.cpp
             HeuristicDecoder.h)
+
+    if (NOT APPLE)
+        target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
+    endif ()
 elseif (${DE})
     message("DE Version")
     add_executable(main
@@ -71,6 +75,10 @@ elseif (${DE})
             Population.h
             HeuristicDecoder.h
             HeuristicDecoder.cpp)
+    
+    if (NOT APPLE)
+        target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
+    endif ()
 elseif (${VNS})
     message("VNS Version")
     add_executable(main
@@ -78,9 +86,9 @@ elseif (${VNS})
             MTRand.h
             HeuristicDecoder.h
             HeuristicDecoder.cpp)
-endif ()
 
-if (NOT APPLE)
-    target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
+    if (NOT APPLE)
+        target_link_libraries(main PUBLIC OpenMP::OpenMP_CXX)
+    endif ()
 endif ()
 
