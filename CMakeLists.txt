@@ -5,7 +5,7 @@ endif ()
 project(VRBSP-Heuristics)
 
 OPTION(USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
-#add_compile_definitions(DEBUG_CLION)
+add_compile_definitions(DEBUG_CLION)
 
 if (APPLE AND USE_OpenMP)
     set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/10.0.0_3/bin/clang")
@@ -42,12 +42,15 @@ if (APPLE AND USE_OpenMP)
     endif (OPENMP_FOUND)
 
     add_executable(main
-            HeuristicBRKGA.cpp
-            BRKGA.h
+#            HeuristicBRKGA.cpp
+#            BRKGA.h
+#            Population.h
+#            Utility.cpp
+#            Utility.h
+#            DifferentialEvolution.h
+#            DifferentialEvolution.cpp
+            VNS.cpp
             MTRand.h
-            Population.h
-            Utility.cpp
-            Utility.h
             HeuristicDecoder.cpp
             HeuristicDecoder.h)
 else ()

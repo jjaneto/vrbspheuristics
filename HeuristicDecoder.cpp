@@ -261,9 +261,9 @@ double computeThroughput(Solution &curr, bool force) {
                 conn.interference = 0.0;
                 conn.throughput = 0.0;
                 for (Connection &otherConn : curr.spectrums[s].channels[c].connections) {
-                    if (conn.id == 0 && force) {
+//                    if (conn.id == 0 && force) {
 //            printf("vou somar %.10lf\n", interferenceMatrix[conn.id][otherConn.id]);
-                    }
+//                    }
                     conn.interference += interferenceMatrix[conn.id][otherConn.id];
                 }
                 chThroughput += computeConnectionThroughput(conn, curr.spectrums[s].channels[c].bandwidth, force);
@@ -288,6 +288,16 @@ void insertInSpectrum(Solution &sol, vector<Channel> &channels, int specId) {
 
 void rawInsert(Solution &sol, int conn, ii where) {
     sol.spectrums[where.first].channels[where.second].connections.emplace_back(Connection(conn));
+}
+
+void rawRemove(Solution &sol, int conn, ii where) {
+    for (int idx = 0; idx < sol.spectrums[where.first].channels[where.second].connections.size(); idx++) {
+        if (sol.spectrums[where.first].channels[where.second].connections[idx].id == conn) {
+            sol.spectrums[where.first].channels[where.second].connections.erase(
+                    sol.spectrums[where.first].channels[where.second].connections.begin() + idx);
+            return;
+        }
+    }
 }
 
 void computeChannelsThroughput(vector<Channel> &channels) {
@@ -667,7 +677,8 @@ void insertBestChannel(Solution &sol, int conn, int band, vector<double> &variab
         for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
             Channel channelInsert = insertInChannel(sol.spectrums[s].channels[c], conn);
 
-            double auxThroughput = currentThroughput - sol.spectrums[s].channels[c].throughput + channelInsert.throughput;
+            double auxThroughput =
+                    currentThroughput - sol.spectrums[s].channels[c].throughput + channelInsert.throughput;
 
             if (auxThroughput > bestThroughputIteration) {
 //                printf("colocar %d em {%d, %d} resulta %lf ==> %lf\n", conn, s, c, currentThroughput, auxThroughput);

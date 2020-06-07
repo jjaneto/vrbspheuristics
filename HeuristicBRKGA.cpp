@@ -1,6 +1,4 @@
 #include "HeuristicDecoder.h"
-//#include "SampleDecoder.h"
-#include <cassert>
 #include "BRKGA.h"
 #include "MTRand.h"
 

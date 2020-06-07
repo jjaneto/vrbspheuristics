@@ -114,6 +114,8 @@ void loadData();
 
 void rawInsert(Solution &sol, int conn, ii where);
 
+void rawRemove(Solution &sol, int conn, ii where);
+
 Channel insertInChannel(Channel newChannel, int conn);
 
 Channel deleteFromChannel(const Channel &channel, int conn);
