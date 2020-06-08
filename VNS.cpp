@@ -63,9 +63,15 @@ Solution convert20MHz(Solution sol) {
 void setDP(Solution &sol, bool ok = false) {
     memset(chanThroughput, 0, sizeof chanThroughput);
     memset(inSolution, false, sizeof inSolution);
+//    for (int i = 0; i < MAX_SPECTRUM; i++) {
+//        for (int j = 0; j < MAX_CHANNELS; j++) {
+//            chanThroughput[i][j] = 0.0;
+//            inSolution[i][j] = false;
+//        }
+//    }
 
     for (int s = 0; s < sol.spectrums.size(); s++) {
-        computeChannelsThroughput(sol.spectrums[s].channels);
+//        computeChannelsThroughput(sol.spectrums[s].channels);
         for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
             chanThroughput[s][c] = sol.spectrums[s].channels[c].throughput;
             if (ok) {
@@ -289,11 +295,11 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
             double loopEachConn0 = clock();
             Solution multipleClean(multiple);
             double loopCleanContaining0 = clock();
-            for (int spec = 0; spec < multipleClean.spectrums.size(); spec++) {
-                for (int chan = 0; chan < multipleClean.spectrums[spec].channels.size(); chan++) {
-                    for (const Connection &conn : multipleClean.spectrums[spec].channels[chan].connections) {
+            for (Spectrum &spectrum : multipleClean.spectrums) {
+                for (Channel &channel : spectrum.channels) {
+                    for (const Connection &conn : channel.connections) {
                         if (conn.id == i) {
-                            rawRemove(multipleClean, conn.id, {spec, chan});
+                            channel = deleteFromChannel(channel, conn.id);
                             break;
                         }
                     }
@@ -301,30 +307,11 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
             }
 
             Solution multipleContaining(multipleClean);
-            for (int spec = 0; spec < multipleContaining.spectrums.size(); spec++) {
-                for (int chan = 0; chan < multipleContaining.spectrums[spec].channels.size(); chan++) {
-                    rawInsert(multipleContaining, i, {spec, chan});
+            for (Spectrum &spectrum : multipleContaining.spectrums) {
+                for (Channel &channel : spectrum.channels) {
+                    channel = insertInChannel(channel, i);
                 }
             }
-            computeThroughput(multipleClean);
-            computeThroughput(multipleContaining);
-//            for (Spectrum &spectrum : multipleClean.spectrums) {
-//                for (Channel &channel : spectrum.channels) {
-//                    for (const Connection &conn : channel.connections) {
-//                        if (conn.id == i) {
-//                            channel = deleteFromChannel(channel, conn.id);
-//                            break;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            Solution multipleContaining(multipleClean);
-//            for (Spectrum &spectrum : multipleContaining.spectrums) {
-//                for (Channel &channel : spectrum.channels) {
-//                    channel = insertInChannel(channel, i);
-//                }
-//            }
             loopCleanContaining = max(loopCleanContaining,
                                       (((double) (clock() - loopCleanContaining0) / CLOCKS_PER_SEC)));
             double bestOF = -1;
@@ -363,25 +350,21 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                         Channel &channel = multiple.spectrums[s].channels[c];
                         for (const Connection &conn : channel.connections) {
                             if (conn.id == i) {
-                                rawRemove(multiple, conn.id, {s, c});
-//                                channel = deleteFromChannel(channel, conn.id);
+                                channel = deleteFromChannel(channel, conn.id);
                                 break;
                             }
                         }
                     }
                 }
-                computeThroughput(multiple);
 
                 int newSpec = bestChannel.first;
                 int newChan = bestChannel.second;
                 while (newChan != -1) {
-//                    multiple.spectrums[newSpec].channels[newChan] = insertInChannel(
-//                            multiple.spectrums[newSpec].channels[newChan],
-//                            i);
-                    rawInsert(multiple, i, {newSpec, newChan});
+                    multiple.spectrums[newSpec].channels[newChan] = insertInChannel(
+                            multiple.spectrums[newSpec].channels[newChan],
+                            i);
                     newChan = parent[newSpec][newChan];
                 }
-                computeThroughput(multiple);
                 updtSol = max(updtSol, (((double) (clock() - updtSol0) / CLOCKS_PER_SEC)));
             }
 //            if ((((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)) > loopEachConn) {
@@ -391,9 +374,9 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
             loopEachConn = max(loopEachConn, (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
 //            printf("this loop takes %lf seconds\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
         }
-//        printf("demorou %lf\n", (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
+        printf("demorou %lf\n", (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
         aux = max(aux, (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
-    } while (improved && !stop());
+    } while (improved);
 
 //    printf("(1) loop clean contaning lasts %lf\n", loopCleanContaining);
 //    printf("(2) search for the best channel lasts %lf\n", loopBestCh);
@@ -450,7 +433,7 @@ Solution VNS(Solution initSol) {
     double retOF = calcDP(rep);
 
     Solution explicitSol = explicitSolution(rep);
-//    initSol.printSolution();
+    initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
     assert(double_equals(retOF, explicitSol.totalThroughput));
     assert(checkOne(explicitSol));
@@ -516,7 +499,7 @@ Solution VNS(Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
     puts("============== WITH DEBUG ==============");
-    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
+    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r", stdin);
 
     maximumTime = 10;
 #else
