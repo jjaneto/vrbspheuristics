@@ -425,7 +425,7 @@ bool checkTwo(const Solution &s) {
     return true;
 }
 
-Solution VNS(Solution initSol) {
+Solution VNS(FILE **solutionFile, Solution initSol) {
     Solution delta = convert20MHz(initSol);
     Solution rep = multipleRepresentation(delta);
 
@@ -485,7 +485,10 @@ Solution VNS(Solution initSol) {
 //      printf("(2) %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
             if (_FO_localMax > _FO_star) {
 //      if (_FO_localMax > star.totalThroughput) {
-//                printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
+#ifndef DEBUG_CLION
+                fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput, star.totalThroughput,
+                        (((double) (clock() - startTime)) / CLOCKS_PER_SEC));
+#endif
                 _FO_star = _FO_localMax;
                 star = explicitSol;
             }
@@ -543,7 +546,7 @@ int main(int argc, char *argv[]) {
     init(argc, argv, &solutionFile, &objectivesFile);
 
     Solution aux = createSolution();
-    Solution ans = VNS(aux);
+    Solution ans = VNS(&solutionFile, aux);
 
     printf("%.3lf ==> %.3lf\n", aux.totalThroughput, ans.totalThroughput);
 
