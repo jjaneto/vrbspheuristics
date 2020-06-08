@@ -384,24 +384,24 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                 computeThroughput(multiple);
                 updtSol = max(updtSol, (((double) (clock() - updtSol0) / CLOCKS_PER_SEC)));
             }
-            if ((((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)) > loopEachConn) {
-                printf("new high, %lf %lf did upgrade %d\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)),
-                       loopEachConn, enter);
-            }
+//            if ((((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)) > loopEachConn) {
+//                printf("new high, %lf %lf did upgrade %d\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)),
+//                       loopEachConn, enter);
+//            }
             loopEachConn = max(loopEachConn, (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
 //            printf("this loop takes %lf seconds\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
         }
-        printf("demorou %lf\n", (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
+//        printf("demorou %lf\n", (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
         aux = max(aux, (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
     } while (improved && !stop());
 
-    printf("(1) loop clean contaning lasts %lf\n", loopCleanContaining);
-    printf("(2) search for the best channel lasts %lf\n", loopBestCh);
-    printf("(3) loop for conn lasts %lf\n", loopEachConn);
-    printf("(4) loop for each connection lasts %lf\n", aux);
-    printf("(X) update solution lasts %lf\n", updtSol);
-    printf("===== total do-while lasts %lf =====\n", (((double) (clock() - initLoopTime)) / CLOCKS_PER_SEC));
-    this_thread::sleep_for(chrono::seconds(5));
+//    printf("(1) loop clean contaning lasts %lf\n", loopCleanContaining);
+//    printf("(2) search for the best channel lasts %lf\n", loopBestCh);
+//    printf("(3) loop for conn lasts %lf\n", loopEachConn);
+//    printf("(4) loop for each connection lasts %lf\n", aux);
+//    printf("(X) update solution lasts %lf\n", updtSol);
+//    printf("===== total do-while lasts %lf =====\n", (((double) (clock() - initLoopTime)) / CLOCKS_PER_SEC));
+//    this_thread::sleep_for(chrono::seconds(5));
     return explicitSolution(multiple);
 }
 
@@ -450,7 +450,7 @@ Solution VNS(Solution initSol) {
     double retOF = calcDP(rep);
 
     Solution explicitSol = explicitSolution(rep);
-    initSol.printSolution();
+//    initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
     assert(double_equals(retOF, explicitSol.totalThroughput));
     assert(checkOne(explicitSol));
@@ -502,7 +502,7 @@ Solution VNS(Solution initSol) {
 //      printf("(2) %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
             if (_FO_localMax > _FO_star) {
 //      if (_FO_localMax > star.totalThroughput) {
-                printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
+//                printf("->> %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
                 _FO_star = _FO_localMax;
                 star = explicitSol;
             }
@@ -516,7 +516,7 @@ Solution VNS(Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
     puts("============== WITH DEBUG ==============");
-    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r", stdin);
+    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
 
     maximumTime = 10;
 #else
