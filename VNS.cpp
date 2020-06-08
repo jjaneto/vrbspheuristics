@@ -118,19 +118,11 @@ bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to,
     if (to == from)
         return false;
 
-//  Solution copy(sol);
-
     Channel &oldChan = sol.spectrums[from.first].channels[from.second];
     Channel &newChan = sol.spectrums[to.first].channels[to.second];
 
     Channel copyOldChan = deleteFromChannel(oldChan, conn.id);
     Channel copyNewChan = insertInChannel(newChan, conn.id);
-
-//  Channel oldChan = deleteFromChannel(copy.spectrums[from.first].channels[from.second], conn.id);
-//  Channel newChan = insertInChannel(copy.spectrums[to.first].channels[to.second], conn.id);
-//
-//  swap(copy.spectrums[from.first].channels[from.second], oldChan);
-//  swap(copy.spectrums[to.first].channels[to.second], newChan);
 
     double newObjective =
             objective - oldChan.throughput - newChan.throughput + copyNewChan.throughput + copyOldChan.throughput;
@@ -142,7 +134,6 @@ bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to,
     if ((newObjective > objective) || force) {
         oldChan = copyOldChan;
         newChan = copyNewChan;
-//    computeThroughput(sol); //TODO: do I have to do this?
         //
         objective = newObjective;
     }
@@ -337,9 +328,7 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
             }
             loopBestCh = max(loopBestCh, (((double) (clock() - loopBestCh0) / CLOCKS_PER_SEC)));
 
-            bool enter = false;
             if (bestOF > _FO_delta) {
-                enter = true;
 //                printf("%lf %lf diff %lf\n", bestOF, _FO_delta, bestOF - _FO_delta);
                 double updtSol0 = clock();
                 improved = true;
@@ -367,14 +356,8 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                 }
                 updtSol = max(updtSol, (((double) (clock() - updtSol0) / CLOCKS_PER_SEC)));
             }
-//            if ((((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)) > loopEachConn) {
-//                printf("new high, %lf %lf did upgrade %d\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)),
-//                       loopEachConn, enter);
-//            }
             loopEachConn = max(loopEachConn, (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
-//            printf("this loop takes %lf seconds\n", (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
         }
-        printf("demorou %lf\n", (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
         aux = max(aux, (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
     } while (improved);
 
@@ -433,7 +416,7 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
     double retOF = calcDP(rep);
 
     Solution explicitSol = explicitSolution(rep);
-    initSol.printSolution();
+//    initSol.printSolution();
 //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
     assert(double_equals(retOF, explicitSol.totalThroughput));
     assert(checkOne(explicitSol));
@@ -456,25 +439,20 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
 
             if (rng.randInt(1)) { //AddDrop
                 K_AddDrop(delta, _FO_delta, k * K_MUL);
-                fixChannels(delta, _FO_delta);
             } else { //Reinsert
                 K_RemoveAndInserts(delta, _FO_delta, k * K_MUL);
-                fixChannels(delta, _FO_delta);
             }
+            fixChannels(delta, _FO_delta);
 
             Solution multiple = multipleRepresentation(delta);
             setDP(multiple);
             assert(checkTwo(multiple));
-            _FO_delta = calcDP(multiple);
-//      printf("hmm %.3lf\n", _FO_delta);
 
-//      puts("entrei");
+            _FO_delta = calcDP(multiple);
             explicitSol = newVNS_Reinsert(multiple, _FO_delta, delta);
-//      puts("e sai");
             fixChannels(explicitSol, _FO_delta);
             delta = convert20MHz(explicitSol);
 
-//      printf("(1) %.3lf %.3lf\n", explicitSol.totalThroughput, localMax.totalThroughput);
             if (_FO_delta > _FO_localMax) {
                 k = 1;
                 _FO_localMax = _FO_delta;
@@ -482,9 +460,7 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
             } else {
                 k++;
             }
-//      printf("(2) %.3lf %.3lf\n", explicitSol.totalThroughput, star.totalThroughput);
             if (_FO_localMax > _FO_star) {
-//      if (_FO_localMax > star.totalThroughput) {
 #ifndef DEBUG_CLION
                 fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput, star.totalThroughput,
                         (((double) (clock() - startTime)) / CLOCKS_PER_SEC));
