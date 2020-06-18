@@ -82,3 +82,4 @@ cmake_install.cmake
 main
 Instancias/**
 .DS_Store
+.clang-format

@@ -12,11 +12,9 @@ int child[MAX_SPECTRUM][MAX_CHANNELS][2];
 double chanThroughput[MAX_SPECTRUM][MAX_CHANNELS];
 bool inSolution[MAX_SPECTRUM][MAX_CHANNELS];
 
-static double all_best = -1;
+static int cnt0, cnt1;
 
-bool stop() {
-    return (((double) (clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime;
-}
+bool stop() { return (((double)(clock() - startTime)) / CLOCKS_PER_SEC) >= maximumTime; }
 
 bool allChannels20MHz(const Solution &sol) {
     for (const Spectrum &spectrum : sol.spectrums) {
@@ -54,7 +52,8 @@ Solution convert20MHz(Solution sol) {
                 }
 
                 spectrum.channels[c] = child1;
-                spectrum.channels.insert(spectrum.channels.begin() + c, child2); //TODO: it was .end(). Did it right?
+                spectrum.channels.insert(spectrum.channels.begin() + c,
+                                         child2); // TODO: it was .end(). Did it right?
             }
         }
     }
@@ -151,7 +150,8 @@ double calcDP(Solution &sol, bool ok = false) {
     return OF;
 }
 
-bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to, bool force = false) {
+bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to,
+              bool force = false) {
     if (to == from)
         return false;
 
@@ -161,8 +161,8 @@ bool reinsert(Solution &sol, double &objective, Connection conn, ii from, ii to,
     Channel copyOldChan = deleteFromChannel(oldChan, conn.id);
     Channel copyNewChan = insertInChannel(newChan, conn.id);
 
-    double newObjective =
-        objective - oldChan.throughput - newChan.throughput + copyNewChan.throughput + copyOldChan.throughput;
+    double newObjective = objective - oldChan.throughput - newChan.throughput +
+                          copyNewChan.throughput + copyOldChan.throughput;
 
     bool improved = false;
     if (newObjective > objective)
@@ -189,7 +189,7 @@ double try_insert(Solution sol, double objective, Connection conn, ii from, ii t
     if (from == to) {
         return -1.0;
     }
-    
+
     reinsert(sol, objective, conn, from, to, true);
     double ret = try_dp(sol);
     return ret;
@@ -199,36 +199,51 @@ void K_addDrop_best(Solution &sol, double &_FO_delta, int K) {
     ii chFrom = {sol.spectrums.size() - 1, 0};
     K = min(K, int(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size()));
     for (int i = 0; i < K; i++) {
-        int idx = rng.randInt(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size() - 1);
+        int idx =
+            rng.randInt(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size() - 1);
         Connection conn = sol.spectrums[chFrom.first].channels[chFrom.second].connections[idx];
 
-//         double real = computeThroughput(sol);
-//         sol.printSolution();
-//         printf("throughput real eh %lf cmp com %lf\n", real, _FO_delta);
-//         this_thread::sleep_for(chrono::seconds(10));
-        
+        int a = rng.randInt(sol.spectrums.size() - 1);
+        int b = rng.randInt(sol.spectrums[a].channels.size() - 1);
+        ii channelTo_aux = {a, b};
+
+        double what_value = try_insert(sol, _FO_delta, conn, chFrom, channelTo_aux);
+
+
+        //         double real = computeThroughput(sol);
+        //         sol.printSolution();
+        //         printf("throughput real eh %lf cmp com %lf\n", real, _FO_delta);
+        //         this_thread::sleep_for(chrono::seconds(10));
+
         double best_throughput = -1;
         ii go_to = {-1, -1};
         int number_spectrums = sol.spectrums.size();
-        for (int s = 0; s < number_spectrums;s ++) {
+        for (int s = 0; s < number_spectrums; s++) {
             int number_channels = sol.spectrums[s].channels.size();
             for (int c = 0; c < number_channels; c++) {
                 ii channelTo = {s, c};
                 double aux = try_insert(sol, _FO_delta, conn, chFrom, channelTo);
-                //printf("inserir em {%d, %d} dp retorna %lf (best %lf)\n", s, c, aux, best_throughput);
+                // printf("inserir em {%d, %d} dp retorna %lf (best %lf)\n", s, c, aux,
+                // best_throughput);
                 if (aux > best_throughput) {
-                    //puts("iha!!!");
-                    all_best = max(all_best, aux);
+                    // puts("iha!!!");
+                    //all_best = max(all_best, aux);
                     best_throughput = aux;
                     go_to = {s, c};
                 }
             }
         }
 
-//printf("(1) %d %d, %lf\n", go_to.first, go_to.second, best_throughput);
+        // printf("(1) %d %d, %lf\n", go_to.first, go_to.second, best_throughput);
+        if (what_value < best_throughput) {
+            cnt0++;
+        } else {
+            cnt1++;
+        }
+        assert((what_value < best_throughput) || double_equals(what_value, best_throughput));
         assert(go_to != make_pair(-1, -1));
         reinsert(sol, _FO_delta, conn, chFrom, go_to, true);
-        //this_thread::sleep_for(chrono::seconds(10));
+        // this_thread::sleep_for(chrono::seconds(10));
     }
 }
 
@@ -236,7 +251,8 @@ void K_AddDrop(Solution &sol, double &_FO_delta, int K) {
     ii chFrom = {sol.spectrums.size() - 1, 0};
     K = min(K, int(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size()));
     for (int i = 0; i < K; i++) {
-        int idx = rng.randInt(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size() - 1);
+        int idx =
+            rng.randInt(sol.spectrums[chFrom.first].channels[chFrom.second].connections.size() - 1);
         Connection conn = sol.spectrums[chFrom.first].channels[chFrom.second].connections[idx];
 
         int a = rng.randInt(sol.spectrums.size() - 1);
@@ -264,7 +280,7 @@ void K_RemoveAndInserts(Solution &sol, double &_FO_delta, int K) {
         ii from = {a, b};
         reinsert(sol, _FO_delta, conn, from, zeroChannel, true);
     }
-    //K_AddDrop(sol, _FO_delta, K);
+    // K_AddDrop(sol, _FO_delta, K);
     K_addDrop_best(sol, _FO_delta, K);
 }
 
@@ -318,7 +334,8 @@ bool fixChannels(Solution &sol, double &_FO_delta) {
                 int idx = 0;
                 while (idx < sol.spectrums[s].channels[c].connections.size()) {
                     Connection &conn = sol.spectrums[s].channels[c].connections[idx];
-                    double aux = computeConnectionThroughput(conn, sol.spectrums[s].channels[c].bandwidth);
+                    double aux =
+                        computeConnectionThroughput(conn, sol.spectrums[s].channels[c].bandwidth);
                     if (double_equals(aux, 0.0)) {
                         reinsert(sol, _FO_delta, conn, {s, c}, zeroChannel, true);
                         improved = true;
@@ -336,7 +353,8 @@ bool fixChannels(Solution &sol, double &_FO_delta) {
 Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) {
     bool improved = false;
     int cnt = 0;
-    double initLoopTime = clock(), loopCleanContaining = 0.0, loopBestCh = 0.0, updtSol = 0.0, loopEachConn = 0.0, aux = 0.0;
+    double initLoopTime = clock(), loopCleanContaining = 0.0, loopBestCh = 0.0, updtSol = 0.0,
+           loopEachConn = 0.0, aux = 0.0;
     do {
         double aux0 = clock();
         improved = false;
@@ -361,8 +379,8 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                     channel = insertInChannel(channel, i);
                 }
             }
-            loopCleanContaining = max(loopCleanContaining,
-                                      (((double) (clock() - loopCleanContaining0) / CLOCKS_PER_SEC)));
+            loopCleanContaining = max(
+                loopCleanContaining, (((double)(clock() - loopCleanContaining0) / CLOCKS_PER_SEC)));
             double bestOF = -1;
             ii bestChannel = {-1, -1};
 
@@ -373,7 +391,8 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                     int currChan = c;
 
                     while (currChan != -1) {
-                        chanThroughput[s][currChan] = multipleContaining.spectrums[s].channels[currChan].throughput;
+                        chanThroughput[s][currChan] =
+                            multipleContaining.spectrums[s].channels[currChan].throughput;
                         currChan = parent[s][currChan];
                     }
 
@@ -384,10 +403,11 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                     }
                 }
             }
-            loopBestCh = max(loopBestCh, (((double) (clock() - loopBestCh0) / CLOCKS_PER_SEC)));
+            loopBestCh = max(loopBestCh, (((double)(clock() - loopBestCh0) / CLOCKS_PER_SEC)));
 
             if (bestOF > _FO_delta) {
-                //                printf("%lf %lf diff %lf\n", bestOF, _FO_delta, bestOF - _FO_delta);
+                //                printf("%lf %lf diff %lf\n", bestOF, _FO_delta, bestOF -
+                //                _FO_delta);
                 double updtSol0 = clock();
                 improved = true;
                 _FO_delta = bestOF;
@@ -407,16 +427,16 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
                 int newSpec = bestChannel.first;
                 int newChan = bestChannel.second;
                 while (newChan != -1) {
-                    multiple.spectrums[newSpec].channels[newChan] = insertInChannel(
-                                                                                    multiple.spectrums[newSpec].channels[newChan],
-                                                                                    i);
+                    multiple.spectrums[newSpec].channels[newChan] =
+                        insertInChannel(multiple.spectrums[newSpec].channels[newChan], i);
                     newChan = parent[newSpec][newChan];
                 }
-                updtSol = max(updtSol, (((double) (clock() - updtSol0) / CLOCKS_PER_SEC)));
+                updtSol = max(updtSol, (((double)(clock() - updtSol0) / CLOCKS_PER_SEC)));
             }
-            loopEachConn = max(loopEachConn, (((double) (clock() - loopEachConn0) / CLOCKS_PER_SEC)));
+            loopEachConn =
+                max(loopEachConn, (((double)(clock() - loopEachConn0) / CLOCKS_PER_SEC)));
         }
-        aux = max(aux, (((double) (clock() - aux0) / CLOCKS_PER_SEC)));
+        aux = max(aux, (((double)(clock() - aux0) / CLOCKS_PER_SEC)));
     } while (improved);
 
     //    printf("(1) loop clean contaning lasts %lf\n", loopCleanContaining);
@@ -424,8 +444,8 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
     //    printf("(3) loop for conn lasts %lf\n", loopEachConn);
     //    printf("(4) loop for each connection lasts %lf\n", aux);
     //    printf("(X) update solution lasts %lf\n", updtSol);
-    //    printf("===== total do-while lasts %lf =====\n", (((double) (clock() - initLoopTime)) / CLOCKS_PER_SEC));
-    //    this_thread::sleep_for(chrono::seconds(5));
+    //    printf("===== total do-while lasts %lf =====\n", (((double) (clock() - initLoopTime)) /
+    //    CLOCKS_PER_SEC)); this_thread::sleep_for(chrono::seconds(5));
     return explicitSolution(multiple);
 }
 
@@ -494,11 +514,11 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
         while (k <= K_MAX && !stop()) {
             delta = localMax;
             _FO_delta = _FO_localMax;
-            
-            if (rng.randInt(1)) { //AddDrop
-                //K_AddDrop(delta, _FO_delta, k * K_MUL);
+
+            if (rng.randInt(1)) { // AddDrop
+                // K_AddDrop(delta, _FO_delta, k * K_MUL);
                 K_addDrop_best(delta, _FO_delta, k * K_MUL);
-            } else { //Reinsert
+            } else { // Reinsert
                 K_RemoveAndInserts(delta, _FO_delta, k * K_MUL);
             }
             fixChannels(delta, _FO_delta);
@@ -521,8 +541,8 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
             }
             if (_FO_localMax > _FO_star) {
 #ifndef DEBUG_CLION
-                fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput, star.totalThroughput,
-                        (((double) (clock() - startTime)) / CLOCKS_PER_SEC));
+                fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput,
+                        star.totalThroughput, (((double)(clock() - startTime)) / CLOCKS_PER_SEC));
 #endif
                 _FO_star = _FO_localMax;
                 star = explicitSol;
@@ -535,14 +555,18 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
 }
 
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
-#ifdef DEBUG_CLION //TODO: remind to remove the MACRO before real tests
+#ifdef DEBUG_CLION // TODO: remind to remove the MACRO before real tests
     puts("============== WITH DEBUG ==============");
-    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_8/U_8_1.txt", "r", stdin);
+    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r",
+            stdin);
 
     maximumTime = 10;
 #else
     if (argc != 5) {
-        fprintf(stderr, "wrong arguments. Provided %d, Must be: stdin, solutionFile, objectiveFile, timeLimit\n", argc);
+        fprintf(stderr,
+                "wrong arguments. Provided %d, Must be: stdin, solutionFile, objectiveFile, "
+                "timeLimit\n",
+                argc);
         exit(13);
     }
 
@@ -580,16 +604,17 @@ int main(int argc, char *argv[]) {
     puts("com add drop best");
     FILE *solutionFile = nullptr, *objectivesFile = nullptr;
     init(argc, argv, &solutionFile, &objectivesFile);
- 
+
     Solution aux = createSolution();
     Solution ans = VNS(&solutionFile, aux);
 
-    printf("all best %lf\n", all_best);
+    //printf("all best %lf\n", all_best);
     printf("%.3lf ==> %.3lf\n", aux.totalThroughput, ans.totalThroughput);
- 
+
 #ifdef DEBUG_CLION
+    printf("%d %d\n", cnt0, cnt1);
     //  aux.printSolution();
-    ans.printSolution();
+    // ans.printSolution();
 #else
     if (solutionFile != nullptr) {
         ans.printSolution(solutionFile);
@@ -597,14 +622,14 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "solutionFile is null!\n");
         exit(13);
     }
- 
+
     if (objectivesFile != nullptr) {
         fprintf(objectivesFile, "%lf\n", ans.totalThroughput);
     } else {
         fprintf(stderr, "objectivesFiles is null!\n");
         exit(13);
     }
- 
+
     fclose(solutionFile);
     fclose(objectivesFile);
 #endif
