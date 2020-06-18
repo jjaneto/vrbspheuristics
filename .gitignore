@@ -83,3 +83,4 @@ main
 Instancias/**
 .DS_Store
 .clang-format
+Makefile
