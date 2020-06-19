@@ -5,13 +5,14 @@ endif ()
 project(VRBSP-Heuristics)
 
 OPTION(USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
-add_compile_definitions(DEBUG_CLION)
 
 if (APPLE AND USE_OpenMP)
     set(CMAKE_C_COMPILER "/usr/local/Cellar/llvm/10.0.0_3/bin/clang")
     set(CMAKE_CXX_COMPILER "/usr/local/Cellar/llvm/10.0.0_3/bin/clang++")
     set(OPENMP_LIBRARIES "/usr/local/Cellar/llvm/10.0.0_3/lib")
     set(OPENMP_INCLUDES "/usr/local/Cellar/llvm/10.0.0_3/include")
+
+    add_compile_definitions(DEBUG_CLION)
 
     if (CMAKE_C_COMPILER_ID MATCHES "Clang")
         set(OpenMP_C "${CMAKE_C_COMPILER}")
