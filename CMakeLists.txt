@@ -61,10 +61,11 @@ else ()
         add_executable(main
                 HeuristicBRKGA.cpp
                 BRKGA.h
-                MTRand.h
                 Population.h
                 Utility.cpp
                 Utility.h
+#               VNS.cpp
+                MTRand.h
                 HeuristicDecoder.cpp
                 HeuristicDecoder.h)
     endif ()
