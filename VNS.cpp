@@ -539,6 +539,11 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
     Solution star = explicitSol;
     Solution localMax = delta;
 
+    //----------------------------------------
+    Solution next;
+    double _FO_next = 0.0;
+    //----------------------------------------
+
     double _FO_localMax = retOF;
     double _FO_delta = retOF;
     double _FO_star = initSol.totalThroughput;
@@ -549,8 +554,13 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
     while (!stop()) {
         int k = 1;
         while (k <= K_MAX && !stop()) {
-            delta = localMax;
-            _FO_delta = _FO_localMax;
+            if (double_equals(_FO_next, 0.0)) {
+                delta = localMax;
+                _FO_delta = _FO_localMax;
+            } else {
+                delta = next;
+                _FO_delta = _FO_next;
+            }
 
             clock_t aux0 = clock();
             if (rng.randInt(1)) { // AddDrop
@@ -576,6 +586,12 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
                 localMax = delta;
             } else {
                 k++;
+
+                double factor = _FO_delta / _FO_localMax;
+                if (factor > 80.0 || double_equals(factor, 80.0)) {
+                    _FO_next = _FO_delta;
+                    next = delta;
+                }
             }
             if (_FO_localMax > _FO_star) {
 #ifndef DEBUG_CLION
