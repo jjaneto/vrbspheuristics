@@ -193,44 +193,38 @@ void computeChannelThroughput(Channel &channel) {
     }
 }
 
-double try_insert(Solution &sol, Solution &multiple, Connection conn, ii from, ii to) {
+double try_insert(Solution &multiple, Connection conn, ii from, ii to) {
     if (from == to) {
         return -1.0;
     }
 
-    Channel oldChan = sol.spectrums[from.first].channels[from.second];
-    Channel newChan = sol.spectrums[to.first].channels[to.second];
+    Channel &oldChan = multiple.spectrums[from.first].channels[from.second];
+    Channel &newChan = multiple.spectrums[to.first].channels[to.second];
 
     Channel copyOldChan = deleteFromChannel(oldChan, conn.id);
     Channel copyNewChan = insertInChannel(newChan, conn.id);
 
-    sol.spectrums[from.first].channels[from.second] = copyOldChan;
-    sol.spectrums[to.first].channels[to.second] = copyNewChan;
+    swap(oldChan, copyOldChan);
+    swap(newChan, copyNewChan);
 
-    multiple.spectrums[from.first].channels[from.second] = copyOldChan;
-    multiple.spectrums[to.first].channels[to.second] = copyNewChan;
+    // multiple.spectrums[from.first].channels[from.second] = copyOldChan;
+    // multiple.spectrums[to.first].channels[to.second] = copyNewChan;
 
     int spec = to.first;
-    int currChan = to.second;
+    int currChan = parent[spec][to.second];
     while (currChan != -1) {
         computeChannelThroughput(multiple.spectrums[spec].channels[currChan]);
         chanThroughput[spec][currChan] = multiple.spectrums[spec].channels[currChan].throughput;
         currChan = parent[spec][currChan];
     }
 
-    // swap(copyOldChan, sol.spectrums[from.first].channels[from.second]);
-    // swap(copyNewChan, sol.spectrums[to.first].channels[to.second]);
-
     double ret = try_dp(multiple);
 
-    sol.spectrums[from.first].channels[from.second] = oldChan;
-    sol.spectrums[to.first].channels[to.second] = newChan;
+    swap(oldChan, copyOldChan);
+    swap(newChan, copyNewChan);
 
-    multiple.spectrums[from.first].channels[from.second] = oldChan;
-    multiple.spectrums[to.first].channels[to.second] = newChan;
-
-    // swap(copyOldChan, sol.spectrums[from.first].channels[from.second]);
-    // swap(copyNewChan, sol.spectrums[to.first].channels[to.second]);
+    // multiple.spectrums[from.first].channels[from.second] = oldChan;
+    // multiple.spectrums[to.first].channels[to.second] = newChan;
 
     return ret;
 }
@@ -265,7 +259,7 @@ void K_addDrop_best(Solution &sol, double &_FO_delta, int K) {
             // printf("number of channels %d\n", number_channels);
             for (int c = 0; c < number_channels; c++) {
                 ii channelTo = {s, c};
-                double aux = try_insert(sol, multiple, conn, chFrom, channelTo);
+                double aux = try_insert(multiple, conn, chFrom, channelTo);
                 // printf("%lf\n", aux);
                 if (aux > best_throughput) {
                     best_throughput = aux;
@@ -605,7 +599,7 @@ void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objective
     freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r",
             stdin);
 
-    maximumTime = 10;
+    maximumTime = 300;
 #else
     if (argc != 5) {
         fprintf(stderr,
@@ -645,7 +639,7 @@ void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objective
     fprintf(stdout, "will execute for %lf seconds\n", maximumTime);
 }
 
-void formated_print(const Solution &sol) {
+void formatted_print(const Solution &sol) {
     printf("%d %d\n", cnt0, cnt1);
     printf("%lu\n", sol.spectrums.size());
     for (int i = 0; i < sol.spectrums.size(); i++) {
