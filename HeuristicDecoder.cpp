@@ -49,6 +49,13 @@ void distanceAndInterference() {
             }
         }
     }
+
+    // for (int i = 0; i < nConnections; i++) {
+    //     for (int j = 0; j < nConnections; j++) {
+    //         printf("%.10lf ", interferenceMatrix[i][j]);
+    //     }
+    //     puts("");
+    // }
 }
 
 double convertDBMToMW(double _value) {

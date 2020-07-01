@@ -531,8 +531,8 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
     double retOF = calcDP(rep);
 
     Solution explicitSol = explicitSolution(rep);
-    //  initSol.printSolution();
-    //  assert(explicitSol.totalThroughput >= initSol.totalThroughput);
+    // initSol.printSolution();
+    // assert(explicitSol.totalThroughput >= initSol.totalThroughput);
     assert(double_equals(retOF, explicitSol.totalThroughput));
     assert(checkOne(explicitSol));
 
@@ -549,18 +549,14 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
     double _FO_star = initSol.totalThroughput;
 
     int K_MUL = max(1, nConnections / 100);
-    int K_MAX = 50;
+    int K_MAX = 20;
     startTime = clock();
     while (!stop()) {
+        bool better = false;
         int k = 1;
         while (k <= K_MAX && !stop()) {
-            if (double_equals(_FO_next, 0.0)) {
-                delta = localMax;
-                _FO_delta = _FO_localMax;
-            } else {
-                delta = next;
-                _FO_delta = _FO_next;
-            }
+            delta = localMax;
+            _FO_delta = _FO_localMax;
 
             clock_t aux0 = clock();
             if (rng.randInt(1)) { // AddDrop
@@ -568,7 +564,7 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
             } else { // Reinsert
                 K_RemoveAndInserts(delta, _FO_delta, k * K_MUL);
             }
-            printf("took %lf seconds\n", (((double)(clock() - aux0) / CLOCKS_PER_SEC)));
+            // printf("took %lf seconds\n", (((double)(clock() - aux0) / CLOCKS_PER_SEC)));
             fixChannels(delta, _FO_delta);
 
             Solution multiple = multipleRepresentation(delta);
@@ -586,21 +582,32 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
                 localMax = delta;
             } else {
                 k++;
-
-                double factor = _FO_delta / _FO_localMax;
-                if (factor > 80.0 || double_equals(factor, 80.0)) {
-                    _FO_next = _FO_delta;
-                    next = delta;
-                }
             }
+
             if (_FO_localMax > _FO_star) {
 #ifndef DEBUG_CLION
                 fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput,
                         star.totalThroughput, (((double)(clock() - startTime)) / CLOCKS_PER_SEC));
 #endif
+                better = true;
                 _FO_star = _FO_localMax;
                 star = explicitSol;
             }
+
+            double factor = _FO_delta / _FO_localMax;
+            bool cond1 = factor > .80 || double_equals(factor, .95);
+            bool cond2 = factor < .95 || double_equals(factor, .95);
+            if (cond1 || cond2) {
+                if (_FO_delta > _FO_next || double_equals(_FO_delta, _FO_next)) {
+                    _FO_next = _FO_delta;
+                    next = delta;
+                }
+            }
+        }
+
+        if (!better && !double_equals(_FO_next, 0.0)) {
+            localMax = next;
+            _FO_localMax = _FO_next;
         }
     }
 
@@ -612,10 +619,10 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION // TODO: remind to remove the MACRO before real tests
     puts("============== WITH DEBUG ==============");
-    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r",
+    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_1024/U_1024_1.txt", "r",
             stdin);
 
-    maximumTime = 300;
+    maximumTime = 600;
 #else
     if (argc != 5) {
         fprintf(stderr,
@@ -684,7 +691,7 @@ int main(int argc, char *argv[]) {
     init(argc, argv, &solutionFile, &objectivesFile);
 
     Solution aux;
-    int read_solution = 1;
+    int read_solution = 0;
     if (read_solution) {
         aux = Solution();
 
