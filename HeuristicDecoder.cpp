@@ -573,12 +573,12 @@ void Solution::printSolution(FILE *file) {
     // }
 
     int arr[] = {24, 36, 42, 44};
-    for (int s = 0; s < sol.spectrums.size() - 1; s++) {
-        const Spectrum &sc = sol.spectrums[s];
+    for (int s = 0; s < spectrums.size() - 1; s++) {
+        const Spectrum &sc = spectrums[s];
         for (const Channel &ch : sc.channels) {
             for (const Connection &conn : ch.connections) {
                 cont++;
-                fprintf(fd, "%d %d %d %d %lf\n", conn.id, arr[bwIdx(ch.bandwidth)],
+                fprintf(file, "%d %d %d %d %lf\n", conn.id, arr[bwIdx(ch.bandwidth)],
                         bwIdx(ch.bandwidth), computeConnectionMCS(conn, ch.bandwidth),
                         conn.interference);
             }
@@ -772,4 +772,23 @@ double Solution::decode(std::vector<double> variables) const {
 
     fitness = buildVRBSPSolution(variables, permutation);
     return fitness;
+}
+
+int computeConnectionMCS(const Connection &conn, int bandwidth) {
+    if (bandwidth == 0)
+        return 0.0;
+
+    int mcs = -1;
+    int maxDataRate = bandwidth == 20 ? 8 : 9;
+
+    if (double_equals(conn.interference, 0.0)) {
+        mcs = maxDataRate;
+    } else {
+        double conn_SINR = (powerSender / pow(conn.distanceSR, alfa)) / (conn.interference + noise);
+
+        while (mcs + 1 <= maxDataRate && conn_SINR > SINR[mcs + 1][bwIdx(bandwidth)])
+            mcs++;
+    }
+
+    return mcs;
 }

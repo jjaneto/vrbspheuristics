@@ -537,27 +537,6 @@ bool candidate_to_best(double one, double two) {
     return (one / two) > .9 || double_equals(one / two, .9);
 }
 
-int computeConnectionMCS(Connection conn, int bandwidth) {
-    if (bandwidth == 0)
-        return 0.0;
-
-    int mcs = -1;
-    int maxDataRate = bandwidth == 20 ? 8 : 9;
-
-    if (double_equals(conn.interference, 0.0)) {
-        mcs = maxDataRate;
-        conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
-    } else {
-        double conn_SINR = (powerSender / pow(conn.distanceSR, alfa)) / (conn.interference + noise);
-        conn.SINR = conn_SINR;
-
-        while (mcs + 1 <= maxDataRate && conn_SINR > SINR[mcs + 1][bwIdx(bandwidth)])
-            mcs++;
-    }
-
-    return mcs;
-}
-
 void printAux(const Solution &sol, const double objective) {
     FILE *fd = fopen("./to_check.txt", "w");
     fprintf(fd, "%lf\n", objective);

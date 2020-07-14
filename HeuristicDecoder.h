@@ -130,4 +130,6 @@ double computeConnectionThroughput(Connection &conn, int bandWidth, bool force =
 
 Solution createSolution();
 
+int computeConnectionMCS(const Connection &conn, int bandwidth) ;
+
 #endif //BRKGA_FF_BEST_HEURISTICDECODER_H
