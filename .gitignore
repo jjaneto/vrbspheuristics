@@ -84,3 +84,5 @@ Instancias/**
 .DS_Store
 .clang-format
 Makefile
+**/*~
+build/

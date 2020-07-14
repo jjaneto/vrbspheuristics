@@ -31,7 +31,6 @@ void distanceAndInterference() {
         double X_si = receivers[i][X_c];
         double Y_si = receivers[i][Y_c];
 
-
         for (int j = 0; j < nConnections; j++) {
 
             double X_rj = senders[j][X_c];
@@ -61,20 +60,20 @@ void distanceAndInterference() {
 double convertDBMToMW(double _value) {
     double result = 0.0, b;
 
-    b = _value / 10.0;// dBm dividido por 10
-    result = pow(10.0, b);//Converte de DBm para mW
+    b = _value / 10.0;     // dBm dividido por 10
+    result = pow(10.0, b); // Converte de DBm para mW
 
     return result;
 }
 
-void convertTableToMW(const vector<vector<double> > &_SINR, vector<vector<double> > &_SINR_Mw) {
+void convertTableToMW(const vector<vector<double>> &_SINR, vector<vector<double>> &_SINR_Mw) {
     double result, b;
     for (int i = 0; i < _SINR_Mw.size(); i++) {
         for (int j = 0; j < _SINR_Mw[i].size(); j++) {
 
             if (_SINR[i][j] != 0) {
-                b = _SINR[i][j] / 10.0;// dBm divided by 10
-                result = pow(10.0, b);//Convert DBM to mW
+                b = _SINR[i][j] / 10.0; // dBm divided by 10
+                result = pow(10.0, b);  // Convert DBM to mW
 
                 _SINR_Mw[i][j] = result;
             } else {
@@ -166,13 +165,9 @@ int bwIdx(int bw) {
     return 0;
 }
 
-bool double_equals(double a, double b, double epsilon) {
-    return std::abs(a - b) < epsilon;
-}
+bool double_equals(double a, double b, double epsilon) { return std::abs(a - b) < epsilon; }
 
-bool operator>(const Solution &o1, const Solution &o2) {
-    return operator<(o2, o1);
-}
+bool operator>(const Solution &o1, const Solution &o2) { return operator<(o2, o1); }
 
 bool operator<(const Solution &o1, const Solution &o2) {
     assert(o1.throughputFlag && o2.throughputFlag);
@@ -200,7 +195,6 @@ double computeConnectionThroughput(Connection &conn, int bandwidth, bool force) 
             printf("   ->> SINR EH %.10lf, MCS %d, BW %d\n", conn_SINR, mcs, bandwidth);
         }
 
-
         conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
     }
 
@@ -219,8 +213,8 @@ Channel insertInChannel(Channel newChannel, int idConn) {
     Connection conn(idConn, 0.0, 0.0, distanceMatrix[idConn][idConn]);
 
     for (Connection &connection : newChannel.connections) {
-//    connection.interference += interferenceMatrix[conn.id][connection.id];
-//    conn.interference += interferenceMatrix[connection.id][conn.id];
+        //    connection.interference += interferenceMatrix[conn.id][connection.id];
+        //    conn.interference += interferenceMatrix[connection.id][conn.id];
         connection.interference += interferenceMatrix[connection.id][conn.id];
         conn.interference += interferenceMatrix[conn.id][connection.id];
     }
@@ -268,12 +262,14 @@ double computeThroughput(Solution &curr, bool force) {
                 conn.interference = 0.0;
                 conn.throughput = 0.0;
                 for (Connection &otherConn : curr.spectrums[s].channels[c].connections) {
-//                    if (conn.id == 0 && force) {
-//            printf("vou somar %.10lf\n", interferenceMatrix[conn.id][otherConn.id]);
-//                    }
+                    //                    if (conn.id == 0 && force) {
+                    //            printf("vou somar %.10lf\n",
+                    //            interferenceMatrix[conn.id][otherConn.id]);
+                    //                    }
                     conn.interference += interferenceMatrix[conn.id][otherConn.id];
                 }
-                chThroughput += computeConnectionThroughput(conn, curr.spectrums[s].channels[c].bandwidth, force);
+                chThroughput += computeConnectionThroughput(
+                    conn, curr.spectrums[s].channels[c].bandwidth, force);
             }
             OF += chThroughput;
         }
@@ -298,10 +294,11 @@ void rawInsert(Solution &sol, int conn, ii where) {
 }
 
 void rawRemove(Solution &sol, int conn, ii where) {
-    for (int idx = 0; idx < sol.spectrums[where.first].channels[where.second].connections.size(); idx++) {
+    for (int idx = 0; idx < sol.spectrums[where.first].channels[where.second].connections.size();
+         idx++) {
         if (sol.spectrums[where.first].channels[where.second].connections[idx].id == conn) {
             sol.spectrums[where.first].channels[where.second].connections.erase(
-                    sol.spectrums[where.first].channels[where.second].connections.begin() + idx);
+                sol.spectrums[where.first].channels[where.second].connections.begin() + idx);
             return;
         }
     }
@@ -317,9 +314,7 @@ void computeChannelsThroughput(vector<Channel> &channels) {
     }
 }
 
-double some(const Connection &c1, const Connection &c2) {
-    return c1.throughput + c2.throughput;
-}
+double some(const Connection &c1, const Connection &c2) { return c1.throughput + c2.throughput; }
 
 vector<Channel> split(Channel toSplit, int spectrum) {
     int newBw = toSplit.bandwidth / 2;
@@ -396,7 +391,6 @@ Solution createSolution() {
         bool isSplit = false, inserted = false;
         int bestBandwidthSplit = -1, bandwidthSplit = -1;
 
-
         for (int s = 0; s < retCopy.spectrums.size(); s++) {
             for (int c = 0; c < retCopy.spectrums[s].channels.size(); c++) {
                 const Channel &currentChannel = retCopy.spectrums[s].channels[c];
@@ -410,22 +404,6 @@ Solution createSolution() {
 
                     Channel split0 = insertInChannel(channelSplit[0], conn);
                     Channel split1 = insertInChannel(channelSplit[1], conn);
-
-//          bool cond01 = split0.throughput > split1.throughput;
-//          bool cond02 = double_equals(split0.throughput, split1.throughput) &&
-//                        (split0.connections.size() < split1.connections.size());
-//
-//          bool cond11 = split1.throughput > split0.throughput;
-//          bool cond12 = double_equals(split0.throughput, split1.throughput) &&
-//                        (split1.connections.size() < split0.connections.size());
-//
-//          if (cond01 || cond02) {
-//            channelSplit[0] = split0;
-//          } else if (cond11 || cond12) {
-//            channelSplit[1] = split1;
-//          } else {
-//            channelSplit[0] = split0;
-//          }
 
                     int op = 0;
                     double conf1 = split0.throughput + channelSplit[1].throughput;
@@ -448,19 +426,21 @@ Solution createSolution() {
                 bool betterSplit = false;
                 if (!channelSplit.empty()) {
                     ammount = max(channelSplit[0].throughput + channelSplit[1].throughput, ammount);
-                    betterSplit =
-                            (channelSplit[0].throughput + channelSplit[1].throughput) > channelInserted.throughput;
+                    betterSplit = (channelSplit[0].throughput + channelSplit[1].throughput) >
+                                  channelInserted.throughput;
                 }
 
-                bandwidthSplit = betterSplit ? currentChannel.bandwidth / 2 : currentChannel.bandwidth;
-                double totalThroughputIteration = bestThroughputSoFar - currentChannel.throughput + ammount;
+                bandwidthSplit =
+                    betterSplit ? currentChannel.bandwidth / 2 : currentChannel.bandwidth;
+                double totalThroughputIteration =
+                    bestThroughputSoFar - currentChannel.throughput + ammount;
 
                 bool cond1 = totalThroughputIteration > bestThroughputIteration;
-                bool cond2 =
-                        double_equals(totalThroughputIteration, bestThroughputIteration) &&
-                        bandwidthSplit > bestBandwidthSplit;
+                bool cond2 = double_equals(totalThroughputIteration, bestThroughputIteration) &&
+                             bandwidthSplit > bestBandwidthSplit;
                 bool cond3 = double_equals(totalThroughputIteration, bestThroughputIteration) &&
-                             (bandwidthSplit == bestBandwidthSplit) && betterSplit == false && isSplit == true;
+                             (bandwidthSplit == bestBandwidthSplit) && betterSplit == false &&
+                             isSplit == true;
 
                 if (cond1 || cond2 || cond3) {
                     bestThroughputIteration = totalThroughputIteration;
@@ -485,10 +465,10 @@ Solution createSolution() {
         if (inserted) {
             if (isSplit) {
                 retCopy.spectrums[where.first].channels.erase(
-                        retCopy.spectrums[where.first].channels.begin() + where.second);
+                    retCopy.spectrums[where.first].channels.begin() + where.second);
                 retCopy.spectrums[where.first].channels.insert(
-                        retCopy.spectrums[where.first].channels.begin() + where.second,
-                        bestSplitChannels.begin(), bestSplitChannels.end());
+                    retCopy.spectrums[where.first].channels.begin() + where.second,
+                    bestSplitChannels.begin(), bestSplitChannels.end());
             } else {
                 retCopy.spectrums[where.first].channels[where.second] = bestChannel;
             }
@@ -516,13 +496,13 @@ Solution createSolution() {
     return ret;
 }
 
-Connection::Connection(int id, double throughput, double interference, double distanceSR) : id(id),
-                                                                                            throughput(throughput),
-                                                                                            interference(interference),
-                                                                                            distanceSR(distanceSR) {}
+Connection::Connection(int id, double throughput, double interference, double distanceSR)
+    : id(id), throughput(throughput), interference(interference), distanceSR(distanceSR) {}
 
-Channel::Channel(double throughput, double interference, int bandwidth, const vector<Connection> &connections)
-        : throughput(throughput), interference(interference), bandwidth(bandwidth), connections(connections) {}
+Channel::Channel(double throughput, double interference, int bandwidth,
+                 const vector<Connection> &connections)
+    : throughput(throughput), interference(interference), bandwidth(bandwidth),
+      connections(connections) {}
 
 Channel::Channel(int bandwidth) : bandwidth(bandwidth) {
     interference = 0.0;
@@ -530,12 +510,11 @@ Channel::Channel(int bandwidth) : bandwidth(bandwidth) {
     connections = vector<Connection>();
 }
 
-Spectrum::Spectrum(int maxFrequency, int usedFrequency, const vector<Channel> &channels) : maxFrequency(
-        maxFrequency), usedFrequency(usedFrequency), channels(channels) {}
+Spectrum::Spectrum(int maxFrequency, int usedFrequency, const vector<Channel> &channels)
+    : maxFrequency(maxFrequency), usedFrequency(usedFrequency), channels(channels) {}
 
-Solution::Solution(const vector<Spectrum> &spectrums, double total, bool flag) : spectrums(spectrums),
-                                                                                 totalThroughput(total),
-                                                                                 throughputFlag(flag) {}
+Solution::Solution(const vector<Spectrum> &spectrums, double total, bool flag)
+    : spectrums(spectrums), totalThroughput(total), throughputFlag(flag) {}
 
 Solution::Solution() {
     throughputFlag = true;
@@ -563,7 +542,8 @@ bool addChannel(Solution &sol, int spec, int bw) {
 bool removeChannel(Solution &sol, ii where) {
     double usedBw = sol.spectrums[where.first].channels[where.second].bandwidth;
     sol.spectrums[where.first].usedFrequency -= usedBw;
-    sol.spectrums[where.first].channels.erase(sol.spectrums[where.first].channels.begin() + where.second);
+    sol.spectrums[where.first].channels.erase(sol.spectrums[where.first].channels.begin() +
+                                              where.second);
     return true;
 }
 
@@ -571,16 +551,7 @@ void Solution::printSolution(FILE *file) {
     if (file == nullptr) {
         file = stdout;
     }
-
-//  Solution counterProof;
-//  counterProof.spectrums = initConfiguration;
-//  for (int s = 0; s < spectrums.size(); s++) {
-//    for (int c = 0; c < spectrums[c].channels.size(); c++) {
-//      for (const Connection &conn : spectrums[s].channels[c].connections) {
-//      }
-//    }
-//  }
-
+    
     int cont = 0;
     fprintf(file, "%lf\n", totalThroughput);
     for (int i = 0; i < spectrums.size(); i++) {
@@ -592,7 +563,8 @@ void Solution::printSolution(FILE *file) {
             fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
             for (Connection &conn : spectrums[i].channels[j].connections) {
                 cont++;
-                fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR, conn.throughput);
+                fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR,
+                        conn.throughput);
             }
             fprintf(file, "\n");
         }
@@ -629,7 +601,7 @@ int insertFreeChannel(Solution &sol, int conn, int band, vector<double> &variabl
             sol.totalThroughput += newChannel.throughput;
             inserted = true;
             return band;
-        } else if (freeSpectrum > freeSpectrum2) { //TODO: what is the condition?
+        } else if (freeSpectrum > freeSpectrum2) { // TODO: what is the condition?
             freeSpectrum2 = freeSpectrum;
             idxSpectrum = s;
 
@@ -650,23 +622,23 @@ int insertFreeChannel(Solution &sol, int conn, int band, vector<double> &variabl
         sol.spectrums[idxSpectrum].channels.emplace_back(newChannel);
         sol.totalThroughput += newChannel.throughput;
 
-//        printf("    coloquei em band %d\n", auxBandwidth);
+        //        printf("    coloquei em band %d\n", auxBandwidth);
         if (auxBandwidth != band) {
             switch (newChannel.bandwidth) {
-                case 20:
-                    variables[(conn * 2) + 1] = (0 + 0.25) / 2.0;
-                    break;
-                case 40:
-                    variables[(conn * 2) + 1] = (0.5 + 0.25) / 2.0;
-                    break;
-                case 80:
-                    variables[(conn * 2) + 1] = (0.75 + 0.5) / 2.0;
-                    break;
-                case 160:
-                    variables[(conn * 2) + 1] = (1.0 + 0.75) / 2.0;
-                    break;
-                default:
-                    exit(77);
+            case 20:
+                variables[(conn * 2) + 1] = (0 + 0.25) / 2.0;
+                break;
+            case 40:
+                variables[(conn * 2) + 1] = (0.5 + 0.25) / 2.0;
+                break;
+            case 80:
+                variables[(conn * 2) + 1] = (0.75 + 0.5) / 2.0;
+                break;
+            case 160:
+                variables[(conn * 2) + 1] = (1.0 + 0.75) / 2.0;
+                break;
+            default:
+                exit(77);
             }
         }
     }
@@ -675,7 +647,7 @@ int insertFreeChannel(Solution &sol, int conn, int band, vector<double> &variabl
 }
 
 void insertBestChannel(Solution &sol, int conn, int band, vector<double> &variables) {
-    //TODO: remind to check the output of this function.
+    // TODO: remind to check the output of this function.
     double currentThroughput = sol.totalThroughput, bestThroughputIteration = sol.totalThroughput;
     bool inserted = false;
     Channel newChannel(band);
@@ -684,11 +656,12 @@ void insertBestChannel(Solution &sol, int conn, int band, vector<double> &variab
         for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
             Channel channelInsert = insertInChannel(sol.spectrums[s].channels[c], conn);
 
-            double auxThroughput =
-                    currentThroughput - sol.spectrums[s].channels[c].throughput + channelInsert.throughput;
+            double auxThroughput = currentThroughput - sol.spectrums[s].channels[c].throughput +
+                                   channelInsert.throughput;
 
             if (auxThroughput > bestThroughputIteration) {
-//                printf("colocar %d em {%d, %d} resulta %lf ==> %lf\n", conn, s, c, currentThroughput, auxThroughput);
+                //                printf("colocar %d em {%d, %d} resulta %lf ==> %lf\n", conn, s, c,
+                //                currentThroughput, auxThroughput);
                 bestThroughputIteration = auxThroughput;
                 newChannel = channelInsert;
                 inserted = true;
@@ -698,29 +671,30 @@ void insertBestChannel(Solution &sol, int conn, int band, vector<double> &variab
     }
 
     if (inserted) {
-//        printf("   === vou colocar em {%d, %d}\n", where.first, where.second);
-        sol.totalThroughput = sol.totalThroughput - sol.spectrums[where.first].channels[where.second].throughput +
+        //        printf("   === vou colocar em {%d, %d}\n", where.first, where.second);
+        sol.totalThroughput = sol.totalThroughput -
+                              sol.spectrums[where.first].channels[where.second].throughput +
                               newChannel.throughput;
         sol.spectrums[where.first].channels[where.second] = newChannel;
 
-//        printf("novo throughput: %lf\n", sol.totalThroughput);
+        //        printf("novo throughput: %lf\n", sol.totalThroughput);
 
         if (newChannel.bandwidth != band) {
             switch (newChannel.bandwidth) {
-                case 20:
-                    variables[(conn * 2) + 1] = (0 + 0.25) / 2.0;
-                    break;
-                case 40:
-                    variables[(conn * 2) + 1] = (0.5 + 0.25) / 2.0;
-                    break;
-                case 80:
-                    variables[(conn * 2) + 1] = (0.75 + 0.5) / 2.0;
-                    break;
-                case 160:
-                    variables[(conn * 2) + 1] = (1.0 + 0.75) / 2.0;
-                    break;
-                default:
-                    exit(77);
+            case 20:
+                variables[(conn * 2) + 1] = (0 + 0.25) / 2.0;
+                break;
+            case 40:
+                variables[(conn * 2) + 1] = (0.5 + 0.25) / 2.0;
+                break;
+            case 80:
+                variables[(conn * 2) + 1] = (0.75 + 0.5) / 2.0;
+                break;
+            case 160:
+                variables[(conn * 2) + 1] = (1.0 + 0.75) / 2.0;
+                break;
+            default:
+                exit(77);
             }
         }
     }
@@ -735,39 +709,41 @@ double buildVRBSPSolution(vector<double> variables, vector<int> permutation) {
     Spectrum spec3(100, 0, auxCh);
     Solution sol({spec1, spec2, spec3}, 0.0, true);
 
-    //First, insert in free channels
+    // First, insert in free channels
     int idx = 0;
     while (idx < permutation.size() && totalUsedSpectrum < totalSpectrum) {
         int connection = permutation[idx] / 2;
         int bandWidth = convertChromoBandwidth(variables[permutation[idx] + 1]);
-//        printf("tentando conn %d, band %d (%lf)\n", connection, bandWidth, variables[permutation[idx] + 1]);
+        //        printf("tentando conn %d, band %d (%lf)\n", connection, bandWidth,
+        //        variables[permutation[idx] + 1]);
         totalUsedSpectrum += insertFreeChannel(sol, connection, bandWidth, variables);
         idx++;
     }
 
-//    printf("throughput ate agora %lf\n", sol.totalThroughput);
+    //    printf("throughput ate agora %lf\n", sol.totalThroughput);
 
-    //Second, insert in the best channels
+    // Second, insert in the best channels
     while (idx < permutation.size()) {
         int connection = permutation[idx] / 2;
         int bandWidth = convertChromoBandwidth(variables[permutation[idx] + 1]);
-//        printf("tentando conn %d, band %d (%lf)\n", connection, bandWidth, variables[permutation[idx] + 1]);
+        //        printf("tentando conn %d, band %d (%lf)\n", connection, bandWidth,
+        //        variables[permutation[idx] + 1]);
         insertBestChannel(sol, connection, bandWidth, variables);
-//        printf("deu %lf\n", sol.totalThroughput);
+        //        printf("deu %lf\n", sol.totalThroughput);
         idx++;
     }
 
     double throughput = sol.totalThroughput;
-//    printf("final eh %lf\n", throughput);
+    //    printf("final eh %lf\n", throughput);
     return -1.0 * throughput;
 }
 
 double Solution::decode(std::vector<double> variables) const {
     double fitness = 0.0;
 
-    //TODO: what if the stop criteria is already reached at this point?
+    // TODO: what if the stop criteria is already reached at this point?
 
-    vector<pair<double, int> > ranking;
+    vector<pair<double, int>> ranking;
     for (int i = 0; i < variables.size(); i += 2) {
         ranking.push_back({variables[i], i});
     }
@@ -782,18 +758,3 @@ double Solution::decode(std::vector<double> variables) const {
     fitness = buildVRBSPSolution(variables, permutation);
     return fitness;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
