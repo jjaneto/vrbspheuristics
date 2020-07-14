@@ -551,24 +551,39 @@ void Solution::printSolution(FILE *file) {
     if (file == nullptr) {
         file = stdout;
     }
-    
-    int cont = 0;
-    fprintf(file, "%lf\n", totalThroughput);
-    for (int i = 0; i < spectrums.size(); i++) {
-        if (i == 3)
-            break;
 
-        fprintf(file, "In spec %d:\n", i);
-        for (int j = 0; j < spectrums[i].channels.size(); j++) {
-            fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
-            for (Connection &conn : spectrums[i].channels[j].connections) {
+    int cont = 0;
+    // fprintf(file, "%lf\n", totalThroughput);
+    // for (int i = 0; i < spectrums.size(); i++) {
+    //     if (i == 3)
+    //         break;
+    //
+    //     fprintf(file, "In spec %d:\n", i);
+    //     for (int j = 0; j < spectrums[i].channels.size(); j++) {
+    //         fprintf(file, "  In channel %d (%d MHz): ", j, spectrums[i].channels[j].bandwidth);
+    //         for (Connection &conn : spectrums[i].channels[j].connections) {
+    //             cont++;
+    //             fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference,
+    //             conn.SINR,
+    //                     conn.throughput);
+    //         }
+    //         fprintf(file, "\n");
+    //     }
+    //     fprintf(file, "\n");
+    // }
+
+    int arr[] = {24, 36, 42, 44};
+    for (int s = 0; s < sol.spectrums.size() - 1; s++) {
+        const Spectrum &sc = sol.spectrums[s];
+        for (const Channel &ch : sc.channels) {
+            for (const Connection &conn : ch.connections) {
                 cont++;
-                fprintf(file, "{%d, %.10lf, %.10lf, %lf} ", conn.id, conn.interference, conn.SINR,
-                        conn.throughput);
+                fprintf(fd, "%d %d %d %d %lf\n", conn.id, arr[bwIdx(ch.bandwidth)],
+                        bwIdx(ch.bandwidth), computeConnectionMCS(conn, ch.bandwidth),
+                        conn.interference);
             }
-            fprintf(file, "\n");
+            arr[bwIdx(ch.bandwidth)]--;
         }
-        fprintf(file, "\n");
     }
 
     fprintf(file, "TOTAL OF %d CONNECTIONS\n", cont);

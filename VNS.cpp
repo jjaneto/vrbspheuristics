@@ -630,8 +630,8 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
 
             explicitSol = newVNS_Reinsert(multiple, _FO_delta, delta);
             fixChannels(explicitSol, _FO_delta);
-            printAux(explicitSol, _FO_delta);
-            exit(130);
+            // printAux(explicitSol, _FO_delta);
+            // exit(130);
             delta = convert20MHz(explicitSol);
 
             if (_FO_delta > _FO_localMax) {
