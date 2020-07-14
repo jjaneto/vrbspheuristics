@@ -1,5 +1,7 @@
 #include "HeuristicDecoder.h"
+#include <map>
 #include <set>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -100,12 +102,6 @@ Solution multipleRepresentation(Solution ret) {
 void setDP(const Solution &sol, bool ok = false) {
     memset(chanThroughput, 0, sizeof chanThroughput);
     memset(inSolution, false, sizeof inSolution);
-    //    for (int i = 0; i < MAX_SPECTRUM; i++) {
-    //        for (int j = 0; j < MAX_CHANNELS; j++) {
-    //            chanThroughput[i][j] = 0.0;
-    //            inSolution[i][j] = false;
-    //        }
-    //    }
 
     for (int s = 0; s < sol.spectrums.size(); s++) {
         //        computeChannelsThroughput(sol.spectrums[s].channels);
@@ -134,12 +130,19 @@ double solve(int i, int j) {
     return ret;
 }
 
-double calcDP(const Solution &sol, bool ok = false) {
+map<ii, double> sc_opt;
+
+double calcDP(const Solution &sol, bool ok = false, bool use_sc_map = false) {
     double OF = 0.0;
     for (int s = 0; s < sol.spectrums.size(); s++) {
         for (int c = 0; c < sol.spectrums[s].channels.size(); c++) {
             if (parent[s][c] == -1) {
                 double ret = solve(s, c);
+
+                if (use_sc_map) {
+                    sc_opt[{s, c}] = ret;
+                }
+
                 if (ok) {
                     printf("will add %.3lf, starting from {%d, %d}\n", ret, s, c);
                 }
@@ -423,17 +426,26 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
 
             double loopBestCh0 = clock();
             for (int s = 0; s < curr.spectrums.size(); s++) {
+                setDP(multipleClean);
+                double initOF = calcDP(multiple, false, true);
+                bool necessary = false;
                 for (int c = 0; c < curr.spectrums[s].channels.size(); c++) {
-                    setDP(multipleClean);
-                    int currChan = c;
+                    if (necessary)
+                        setDP(multipleClean);
+                    else
+                        necessary = true;
 
+                    int currChan = c, start_with = -1;
                     while (currChan != -1) {
                         chanThroughput[s][currChan] =
                             multipleContaining.spectrums[s].channels[currChan].throughput;
+                        if (parent[s][currChan] == -1) {
+                            start_with = currChan;
+                        }
                         currChan = parent[s][currChan];
                     }
-
-                    double OF = calcDP(multiple);
+                    double OF = initOF - sc_opt[{s, start_with}] + solve(s, start_with);
+                    // double OF = calcDP(multiple, false, false);
                     if (OF > bestOF) {
                         bestOF = OF;
                         bestChannel = {s, c};
@@ -443,8 +455,6 @@ Solution newVNS_Reinsert(Solution &multiple, double &_FO_delta, Solution &curr) 
             loopBestCh = max(loopBestCh, (((double)(clock() - loopBestCh0) / CLOCKS_PER_SEC)));
 
             if (bestOF > _FO_delta) {
-                //                printf("%lf %lf diff %lf\n", bestOF, _FO_delta, bestOF -
-                //                _FO_delta);
                 double updtSol0 = clock();
                 improved = true;
                 _FO_delta = bestOF;
@@ -523,6 +533,47 @@ bool checkTwo(const Solution &s) {
     return true;
 }
 
+bool candidate_to_best(double one, double two) {
+    return (one / two) > .9 || double_equals(one / two, .9);
+}
+
+int computeConnectionMCS(Connection conn, int bandwidth) {
+    if (bandwidth == 0)
+        return 0.0;
+
+    int mcs = -1;
+    int maxDataRate = bandwidth == 20 ? 8 : 9;
+
+    if (double_equals(conn.interference, 0.0)) {
+        mcs = maxDataRate;
+        conn.throughput = dataRates[mcs][bwIdx(bandwidth)];
+    } else {
+        double conn_SINR = (powerSender / pow(conn.distanceSR, alfa)) / (conn.interference + noise);
+        conn.SINR = conn_SINR;
+
+        while (mcs + 1 <= maxDataRate && conn_SINR > SINR[mcs + 1][bwIdx(bandwidth)])
+            mcs++;
+    }
+
+    return mcs;
+}
+
+void printAux(const Solution &sol, const double objective) {
+    FILE *fd = fopen("./to_check.txt", "w");
+    fprintf(fd, "%lf\n", objective);
+    int arr[] = {24, 36, 42, 44};
+    for (int s = 0; s < sol.spectrums.size() - 1; s++) {
+        const Spectrum &sc = sol.spectrums[s];
+        for (const Channel &ch : sc.channels) {
+            for (const Connection &conn : ch.connections) {
+                fprintf(fd, "%d %d %d %d %lf\n", conn.id, arr[bwIdx(ch.bandwidth)], bwIdx(ch.bandwidth), computeConnectionMCS(conn, ch.bandwidth), conn.interference);
+            }
+            arr[bwIdx(ch.bandwidth)]--;
+        }
+    }
+    fclose(fd);
+}
+
 Solution VNS(FILE **solutionFile, Solution initSol) {
     Solution delta = convert20MHz(initSol);
     Solution rep = multipleRepresentation(delta);
@@ -564,23 +615,32 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
             } else { // Reinsert
                 K_RemoveAndInserts(delta, _FO_delta, k * K_MUL);
             }
-            // printf("took %lf seconds\n", (((double)(clock() - aux0) / CLOCKS_PER_SEC)));
             fixChannels(delta, _FO_delta);
 
             Solution multiple = multipleRepresentation(delta);
             setDP(multiple);
             assert(checkTwo(multiple));
-
             _FO_delta = calcDP(multiple);
+
+            if (!candidate_to_best(_FO_delta, _FO_localMax)) {
+                // TODO: should I leave K value as it is?
+                printf("pulei solucao %.3lf %.3lf\n", _FO_delta, _FO_localMax);
+                continue;
+            }
+
             explicitSol = newVNS_Reinsert(multiple, _FO_delta, delta);
             fixChannels(explicitSol, _FO_delta);
+            printAux(explicitSol, _FO_delta);
+            exit(130);
             delta = convert20MHz(explicitSol);
 
             if (_FO_delta > _FO_localMax) {
+                puts("novo k");
                 k = 1;
                 _FO_localMax = _FO_delta;
                 localMax = delta;
             } else {
+                puts("incrementei");
                 k++;
             }
 
@@ -589,6 +649,8 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
                 fprintf(*solutionFile, "->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput,
                         star.totalThroughput, (((double)(clock() - startTime)) / CLOCKS_PER_SEC));
 #endif
+                printf("melhorei! ->> %.3lf %.3lf %lf\n", explicitSol.totalThroughput,
+                       star.totalThroughput, (((double)(clock() - startTime)) / CLOCKS_PER_SEC));
                 better = true;
                 _FO_star = _FO_localMax;
                 star = explicitSol;
@@ -606,6 +668,7 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
         }
 
         if (!better && !double_equals(_FO_next, 0.0)) {
+            printf("reduzindo otimo local %.3lf ->> %.3lf\n", _FO_localMax, _FO_next);
             localMax = next;
             _FO_localMax = _FO_next;
         }
@@ -619,7 +682,7 @@ Solution VNS(FILE **solutionFile, Solution initSol) {
 void init(int argc, char **argv, FILE **solutionFile = nullptr, FILE **objectivesFile = nullptr) {
 #ifdef DEBUG_CLION // TODO: remind to remove the MACRO before real tests
     puts("============== WITH DEBUG ==============");
-    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_1024/U_1024_1.txt", "r",
+    freopen("/Users/joaquimnt_/git/vrbspheuristics/Instancias/D250x250/U_2048/U_2048_1.txt", "r",
             stdin);
 
     maximumTime = 600;
@@ -729,8 +792,6 @@ int main(int argc, char *argv[]) {
     printf("%.3lf ==> %.3lf\n", aux.totalThroughput, ans.totalThroughput);
 
 #ifdef DEBUG_CLION
-    printf("%d %d\n", cnt0, cnt1);
-    // aux.printSolution();
     // ans.printSolution();
 #else
     if (solutionFile != nullptr) {
